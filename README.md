@@ -210,6 +210,30 @@ Do **not** set `DEV_BYPASS_ACCESS` in production. Local `wrangler dev` uses `DEV
 
 Guest routes stay public and use per-event join codes only.
 
+### Production setup (example: `wedding-photos.henri-481.workers.dev`)
+
+1. **Zero Trust** → **Access** → **Applications** → create or edit a **Self-hosted** app.
+2. **Application domains** — add **both** paths on the same hostname (Access only injects `Cf-Access-Jwt-Assertion` on matching paths):
+   - `wedding-photos.henri-481.workers.dev/host`
+   - `wedding-photos.henri-481.workers.dev/api/host`  
+   (Use **Add a path** / path rules so `/host/*` and `/api/host/*` are covered; protecting only `/host` lets the dashboard load but `POST /api/host/events` returns 401 `missing_token`.)
+3. **Policies** → Allow → **Emails** → your host address.
+4. **Application** → **Overview** → copy the **Application Audience (AUD) Tag** (not the application ID).
+5. **Zero Trust** → **Settings** → **Custom pages** → note **Team domain** (e.g. `something.cloudflareaccess.com`) → this is `CF_ACCESS_TEAM_DOMAIN`.
+6. On the **production** Worker (`wrangler deploy --env production`), set bindings (values are yours; do not commit secrets):
+
+   ```bash
+   cd apps/worker
+   pnpm exec wrangler secret put CF_ACCESS_AUD --env production
+   pnpm exec wrangler var put CF_ACCESS_TEAM_DOMAIN --env production
+   ```
+
+   Paste the AUD tag when prompted for `CF_ACCESS_AUD`. For team domain, paste the team domain string (plain var is fine).
+
+7. Redeploy if needed. In DevTools → Network, a failing `POST /api/host/events` should show response JSON `reason` (`missing_token`, `access_not_configured`, `wrong_aud`, …) and a `hint` field.
+
+**Do not** rely on `Cf-Access-Authenticated-User-Email` alone in Worker code: it is only present when Access handled the request, and the Worker still must verify the JWT audience against `CF_ACCESS_AUD`.
+
 ## Repository layout
 
 - `apps/worker` — Hono on Cloudflare Workers, D1, R2, KV, Queues, Durable Object `EventRoom`
