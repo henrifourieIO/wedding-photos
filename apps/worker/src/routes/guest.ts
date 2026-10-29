@@ -13,7 +13,14 @@ import {
   type GalleryMediaRow,
 } from "../lib/gallery";
 import { isGalleryVisible, resolveEvent, type EventRow } from "../lib/events";
-import { authenticateGuest, issueGuest, normalizeDisplayName, type GuestRow } from "../lib/guest";
+import {
+  authenticateGuest,
+  GuestCookieSecretMissingError,
+  GUEST_COOKIE_SECRET_SETUP_HINT,
+  issueGuest,
+  normalizeDisplayName,
+  type GuestRow,
+} from "../lib/guest";
 import { presignR2Put, type R2PresignConfig } from "../lib/r2";
 import {
   UPLOAD_RATE_LIMIT,
@@ -116,8 +123,18 @@ guest.post("/events/:code/guests", async (c) => {
   const body = await readJson(c);
   const displayName = normalizeDisplayName(body.display_name);
   if (!displayName) return c.json({ error: "invalid_display_name" }, 400);
-  const created = await issueGuest(c, event.join_code, event.id, displayName);
-  return c.json({ id: created.id, display_name: created.display_name }, 201);
+  try {
+    const created = await issueGuest(c, event.join_code, event.id, displayName);
+    return c.json({ id: created.id, display_name: created.display_name }, 201);
+  } catch (error) {
+    if (error instanceof GuestCookieSecretMissingError) {
+      return c.json(
+        { error: "guest_cookie_secret_not_configured", hint: GUEST_COOKIE_SECRET_SETUP_HINT },
+        503,
+      );
+    }
+    throw error;
+  }
 });
 
 guest.get("/events/:code/me", async (c) => {

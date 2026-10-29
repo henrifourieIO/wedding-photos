@@ -84,7 +84,7 @@ Set with `pnpm exec wrangler secret put <NAME> --cwd apps/worker` (add `--env st
 
 | Secret                 | Purpose                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------- |
-| `GUEST_COOKIE_SECRET`  | HMAC key for the signed guest cookie. Generate with `openssl rand -base64 32`.      |
+| `GUEST_COOKIE_SECRET`  | HMAC key for the signed guest cookie. Generate with `openssl rand -base64 32`. Required in staging/production; without it `POST /api/events/:code/guests` returns **503** JSON (`guest_cookie_secret_not_configured` + setup hint) instead of creating a guest. |
 | `R2_ACCOUNT_ID`        | Cloudflare account ID, used for the R2 S3 endpoint `<id>.r2.cloudflarestorage.com`. |
 | `R2_ACCESS_KEY_ID`     | R2 S3 API access key ID.                                                            |
 | `R2_SECRET_ACCESS_KEY` | R2 S3 API secret access key.                                                        |
