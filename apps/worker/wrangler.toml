@@ -89,6 +89,7 @@ ENVIRONMENT = "production"
 R2_BUCKET_NAME = "wedding-photos"
 CF_ACCESS_TEAM_DOMAIN = "henri-481.cloudflareaccess.com"
 CF_ACCESS_AUD = "03f62a045d14f2c018cd37fc7d4a779cd7efc1b5cf0e13388208f33c4d34e5e"
+# Host auth: set HOST_PASSWORD (secret; optional HOST_SESSION_SECRET). Access JWT vars above.
 
 [[env.production.d1_databases]]
 binding = "DB"
