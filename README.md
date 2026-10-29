@@ -4,14 +4,14 @@ A Cloudflare-hosted wedding album: the host creates an event and shares a QR cod
 
 ## Local development
 
-Requirements: Node 20+ (see `.nvmrc`), pnpm 9+, Wrangler CLI.
+Requirements: Node 20+ (see `.nvmrc`), pnpm 10.16+ (see `packageManager` in `package.json`).
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-`pnpm dev` builds the web app and runs `wrangler dev` in `apps/worker`, serving the SPA and API together. API health check: `GET /api/health`.
+`pnpm dev` builds the web app and runs `wrangler dev` in `apps/worker`, serving the SPA and API together. API health check: `GET /api/health`. Host dashboard: `/host` (local dev uses `DEV_BYPASS_ACCESS=true` in `apps/worker/wrangler.toml`).
 
 Other commands:
 
@@ -24,7 +24,15 @@ pnpm build
 
 ## Cloudflare setup
 
-Run the setup script after logging in with Wrangler (`wrangler login`):
+Wrangler is a devDependency at the repo root and in `apps/worker`. After `pnpm install`, run it from the repo root with `pnpm exec wrangler` and point at the Worker config with `--cwd apps/worker` (this avoids re-running pnpm’s install policy checks that `pnpm exec` can trigger on some machines).
+
+Log in first:
+
+```bash
+pnpm exec wrangler login --cwd apps/worker
+```
+
+Then run the setup script (it invokes `apps/worker/node_modules/.bin/wrangler` directly and does not call `pnpm exec`):
 
 ```bash
 chmod +x scripts/cf-setup.sh
@@ -34,9 +42,8 @@ chmod +x scripts/cf-setup.sh
 It creates D1 databases, R2 buckets, KV namespaces, and Queues for staging and production, then prints IDs to paste into `apps/worker/wrangler.toml` (replace `REPLACE_WITH_*` placeholders). Apply migrations:
 
 ```bash
-cd apps/worker
-wrangler d1 migrations apply wedding-photos --remote
-wrangler d1 migrations apply wedding-photos-staging --remote --env staging
+pnpm exec wrangler d1 migrations apply wedding-photos --remote --cwd apps/worker
+pnpm exec wrangler d1 migrations apply wedding-photos-staging --remote --env staging --cwd apps/worker
 ```
 
 ## Secrets and deploy
@@ -50,11 +57,11 @@ wrangler d1 migrations apply wedding-photos-staging --remote --env staging
 
 Pushes to `main` run `.github/workflows/deploy.yml` and deploy the production Worker. PRs run typecheck, lint, and tests via `.github/workflows/ci.yml`.
 
-**Worker secrets** (add when implementing Stream): `STREAM_API_TOKEN`, `STREAM_WEBHOOK_SECRET` via `wrangler secret put`.
+**Worker secrets** (add when implementing Stream): `STREAM_API_TOKEN`, `STREAM_WEBHOOK_SECRET` via `pnpm exec wrangler secret put <NAME> --cwd apps/worker`.
 
 ### Guest upload secrets
 
-Set with `wrangler secret put <NAME>` (add `--env staging` / `--env production` as needed):
+Set with `pnpm exec wrangler secret put <NAME> --cwd apps/worker` (add `--env staging` / `--env production` as needed):
 
 | Secret                 | Purpose                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------- |
@@ -86,7 +93,28 @@ Apply the new migration (`0002_media_upload_fields.sql`) with the `wrangler d1 m
 
 ## Host access (Cloudflare Access)
 
-The host dashboard (`/host/*`) and host API (`/api/host/*`) will sit behind **Cloudflare Access** (Zero Trust) with an email allow-list—no custom login in app code. Configure an Access application in the dashboard for those paths before using the host features in later PRs. Guest routes stay public and use per-event join codes.
+The host dashboard (`/host/*`) and host API (`/api/host/*`) are protected by **Cloudflare Access** (Zero Trust). The Worker verifies the `Cf-Access-Jwt-Assertion` header using your team domain and application AUD tag.
+
+### Configure Access
+
+1. Open [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → **Access** → **Applications** → **Add an application**.
+2. Choose **Self-hosted**.
+3. Application domain: your Worker hostname with path rules for `/host` and `/api/host` (e.g. `wedding-photos.<your-subdomain>.workers.dev/host` and the same host with `/api/host`). Add both path prefixes to one app or use a wildcard path policy on that hostname as needed.
+4. **Policies**: Allow → Include → **Emails** → your host email only.
+5. Save the application and copy the **AUD** tag from the application settings.
+
+### Worker configuration
+
+Set these on the production (and staging) Worker—via `wrangler.toml` `[vars]` or `wrangler secret` as you prefer:
+
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| `CF_ACCESS_TEAM_DOMAIN` | `yourteam.cloudflareaccess.com` | Zero Trust team domain (Settings → Custom pages) |
+| `CF_ACCESS_AUD` | (AUD tag from the Access app) | Audience claim for JWT verification |
+
+Do **not** set `DEV_BYPASS_ACCESS` in production. Local `wrangler dev` uses `DEV_BYPASS_ACCESS=true` in the default `[vars]` block so you can use `/host` without Access.
+
+Guest routes stay public and use per-event join codes only.
 
 ## Repository layout
 

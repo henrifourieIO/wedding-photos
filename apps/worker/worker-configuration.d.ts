@@ -15,6 +15,10 @@ declare namespace Cloudflare {
     MAX_UPLOAD_BYTES?: string;
     STREAM_API_TOKEN?: string;
     STREAM_WEBHOOK_SECRET?: string;
+    CF_ACCESS_TEAM_DOMAIN?: string;
+    CF_ACCESS_AUD?: string;
+    DEV_BYPASS_ACCESS?: string;
+    ENVIRONMENT?: string;
   }
 }
 

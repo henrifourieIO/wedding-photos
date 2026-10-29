@@ -3,13 +3,14 @@ main = "src/index.ts"
 compatibility_date = "2025-02-04"
 compatibility_flags = ["nodejs_compat"]
 
+[vars]
+DEV_BYPASS_ACCESS = "true"
+R2_BUCKET_NAME = "wedding-photos"
+
 [assets]
 directory = "../web/dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-
-[vars]
-R2_BUCKET_NAME = "wedding-photos"
 
 [[d1_databases]]
 binding = "DB"

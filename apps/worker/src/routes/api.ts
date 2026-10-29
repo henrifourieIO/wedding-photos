@@ -1,10 +1,8 @@
 import { Hono } from "hono";
 import { guest } from "./guest";
-import { assertNever, type RevealMode } from "../types";
-
-export type AppEnv = {
-  Bindings: Cloudflare.Env;
-};
+import { host } from "./host";
+import { hostAccessAuth } from "../lib/auth";
+import { assertNever, type AppEnv, type RevealMode } from "../types";
 
 function describeRevealMode(mode: RevealMode): string {
   switch (mode) {
@@ -27,3 +25,5 @@ api.get("/health", (c) => {
 });
 
 api.route("/", guest);
+api.use("/host/*", hostAccessAuth());
+api.route("/host", host);
