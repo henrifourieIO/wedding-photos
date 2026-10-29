@@ -24,13 +24,15 @@ pnpm build
 
 ## Cloudflare setup
 
-Log in with Wrangler from the repo root first:
+Wrangler is a devDependency at the repo root and in `apps/worker`. After `pnpm install`, run it from the repo root with `pnpm exec wrangler` and point at the Worker config with `--cwd apps/worker` (this avoids re-running pnpm’s install policy checks that `pnpm exec` can trigger on some machines).
+
+Log in first:
 
 ```bash
-pnpm exec wrangler login
+pnpm exec wrangler login --cwd apps/worker
 ```
 
-Then run the setup script:
+Then run the setup script (it invokes `apps/worker/node_modules/.bin/wrangler` directly and does not call `pnpm exec`):
 
 ```bash
 chmod +x scripts/cf-setup.sh
@@ -40,9 +42,8 @@ chmod +x scripts/cf-setup.sh
 It creates D1 databases, R2 buckets, KV namespaces, and Queues for staging and production, then prints IDs to paste into `apps/worker/wrangler.toml` (replace `REPLACE_WITH_*` placeholders). Apply migrations:
 
 ```bash
-cd apps/worker
-pnpm exec wrangler d1 migrations apply wedding-photos --remote
-pnpm exec wrangler d1 migrations apply wedding-photos-staging --remote --env staging
+pnpm exec wrangler d1 migrations apply wedding-photos --remote --cwd apps/worker
+pnpm exec wrangler d1 migrations apply wedding-photos-staging --remote --env staging --cwd apps/worker
 ```
 
 ## Secrets and deploy
@@ -56,11 +57,11 @@ pnpm exec wrangler d1 migrations apply wedding-photos-staging --remote --env sta
 
 Pushes to `main` run `.github/workflows/deploy.yml` and deploy the production Worker. PRs run typecheck, lint, and tests via `.github/workflows/ci.yml`.
 
-**Worker secrets** (add when implementing Stream): `STREAM_API_TOKEN`, `STREAM_WEBHOOK_SECRET` via `pnpm exec wrangler secret put`.
+**Worker secrets** (add when implementing Stream): `STREAM_API_TOKEN`, `STREAM_WEBHOOK_SECRET` via `pnpm exec wrangler secret put <NAME> --cwd apps/worker`.
 
 ### Guest upload secrets
 
-Set with `wrangler secret put <NAME>` (add `--env staging` / `--env production` as needed):
+Set with `pnpm exec wrangler secret put <NAME> --cwd apps/worker` (add `--env staging` / `--env production` as needed):
 
 | Secret                 | Purpose                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------- |
