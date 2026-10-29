@@ -78,27 +78,29 @@ The top-level `[vars]` block in `apps/worker/wrangler.toml` sets `DEV_BYPASS_ACC
 
 Stream secrets are covered under [Video (Cloudflare Stream)](#video-cloudflare-stream).
 
-### Guest upload secrets
+### Guest upload secrets (and host cover photos)
 
-Set with `pnpm exec wrangler secret put <NAME> --cwd apps/worker` (add `--env staging` / `--env production` as needed):
+Host event **cover** uploads and guest **photo** uploads both use the same R2 S3-compatible presigned PUT URLs when the secrets below are set. You can create events **without** a cover even when these secrets are missing; only requests that include `coverContentType` need them.
+
+Set on **production** with `pnpm exec wrangler secret put <NAME> --env production --cwd apps/worker` (use `--env staging` for staging):
 
 | Secret                 | Purpose                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------- |
-| `GUEST_COOKIE_SECRET`  | HMAC key for the signed guest cookie. Generate with `openssl rand -base64 32`.      |
+| `GUEST_COOKIE_SECRET`  | HMAC key for the signed guest cookie. Generate with `openssl rand -base64 32`. Required in staging/production; without it `POST /api/events/:code/guests` returns **503** JSON (`guest_cookie_secret_not_configured` + setup hint) instead of creating a guest. |
 | `R2_ACCOUNT_ID`        | Cloudflare account ID, used for the R2 S3 endpoint `<id>.r2.cloudflarestorage.com`. |
 | `R2_ACCESS_KEY_ID`     | R2 S3 API access key ID.                                                            |
 | `R2_SECRET_ACCESS_KEY` | R2 S3 API secret access key.                                                        |
 
-`R2_BUCKET_NAME` is a plain var in `wrangler.toml`. Optional var `MAX_UPLOAD_BYTES` overrides the 25 MB photo cap.
+`R2_BUCKET_NAME` is a plain var in `wrangler.toml` (production: `wedding-photos`).
 
-Create the R2 S3 API keys: Cloudflare dashboard -> R2 -> Manage R2 API Tokens -> Create API token -> permission **Object Read & Write**, scoped to the photos bucket. Copy the Access Key ID and Secret Access Key (shown once).
+**Create the R2 S3 API token:** Cloudflare dashboard → **R2** → **Manage R2 API Tokens** → **Create API token** → permission **Object Read & Write**, scoped to the **`wedding-photos`** bucket (staging: `wedding-photos-staging`). Copy the **Access Key ID** and **Secret Access Key** (shown once) into the Worker secrets above.
 
-Browsers PUT directly to R2, so add a CORS rule to the bucket (R2 -> bucket -> Settings -> CORS Policy):
+Browsers PUT directly to R2, so add a CORS rule on the bucket (R2 → bucket → **Settings** → **CORS Policy**). Include your Worker origin, e.g. `https://wedding-photos.<your-subdomain>.workers.dev`:
 
 ```json
 [
   {
-    "AllowedOrigins": ["https://<your-app-origin>"],
+    "AllowedOrigins": ["https://wedding-photos.<your-subdomain>.workers.dev"],
     "AllowedMethods": ["PUT"],
     "AllowedHeaders": ["content-type"],
     "MaxAgeSeconds": 3600
@@ -106,7 +108,7 @@ Browsers PUT directly to R2, so add a CORS rule to the bucket (R2 -> bucket -> S
 ]
 ```
 
-If the R2 S3 secrets are absent (local dev), uploads fall back to `PUT /api/events/:code/uploads/:id/body`, which streams through the Worker into the `PHOTOS` binding. For local dev create `apps/worker/.dev.vars` with `GUEST_COOKIE_SECRET=dev-secret`.
+If the R2 S3 secrets are absent (local dev), guest photo uploads fall back to `PUT /api/events/:code/uploads/:id/body`, which streams through the Worker into the `PHOTOS` binding. Host cover uploads require the R2 secrets when you attach a cover; omit the cover on create/edit otherwise. Optional var `MAX_UPLOAD_BYTES` overrides the 25 MB photo cap. For local dev create `apps/worker/.dev.vars` with `GUEST_COOKIE_SECRET=dev-secret`.
 
 Apply the new migration (`0002_media_upload_fields.sql`) with the `wrangler d1 migrations apply` commands above.
 
@@ -161,7 +163,7 @@ Migration `0003_media_processing.sql` adds `reason`, `error`, `processed_at`, `t
 
 ## Guest gallery and reveal
 
-Guest SPA route: `/e/:joinCode/gallery` (masonry grid, lightbox, save/share via Web Share API or download). Polls `GET /api/events/:code/gallery` every few seconds; a future `EventRoom` WebSocket can replace polling when the live wall ships.
+Guest SPA route: `/e/:joinCode/gallery` (masonry grid, lightbox, save/share via Web Share API or download). Updates live over the `EventRoom` Durable Object WebSocket (`GET /api/events/:code/live`; host: `GET /api/host/events/:id/live`), with a 30s poll fallback. TV slideshow: `/e/:code/wall` and `/host/events/:id/wall` (press `f` or double-click for fullscreen). The queue consumer, Stream webhook and host hide/delete notify the room; media not yet revealed is only sent to host sockets.
 
 Visibility for guests: `status = ready`, not host-hidden, and reveal rules from the event — `instant` (immediate), `delayed` (after `reveal_at`), or `private` (host-only; guests see an empty “host-only album” state). The JSON includes `gallery_visible`, `reveal_mode`, and `reveal_at` for countdown UI when the album is still locked.
 

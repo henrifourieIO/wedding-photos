@@ -44,3 +44,24 @@ export async function presignCoverPut(
   }
   return presignR2Put(config, key, contentType);
 }
+
+export class CoverPresignUnavailableError extends Error {
+  constructor() {
+    super("cover_presign_unavailable");
+    this.name = "CoverPresignUnavailableError";
+  }
+}
+
+export function coverPresignUnavailableResponse(): {
+  error: string;
+  reason: string;
+  hint: string;
+} {
+  return {
+    error: "cover_presign_unavailable",
+    reason:
+      "R2 S3 API credentials are not configured on the Worker, so cover photo presigned uploads are unavailable.",
+    hint:
+      "Create an R2 S3 API token (Object Read & Write, scoped to the wedding-photos bucket), then set production secrets R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY. Add a bucket CORS rule allowing PUT from your workers.dev origin. See README.",
+  };
+}

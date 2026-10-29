@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiError, api, type GalleryItem, type GalleryPage } from "../lib/api";
+import { useLive } from "../lib/useLive";
 import { VideoPlayer } from "../components/VideoPlayer";
 import styles from "./gallery.module.css";
 
-const POLL_MS = 5000;
+const POLL_MS = 30_000;
 
 type Props = { code: string };
 
@@ -101,14 +102,14 @@ export function Gallery({ code }: Props) {
     };
   }, [phase.kind, load]);
 
+  const reload = useCallback(() => {
+    void load();
+  }, [load]);
+  useLive(`/api/events/${encodeURIComponent(code)}/live`, reload, reload);
+
   const waiting =
-    phase.kind === "ready" &&
-    !phase.page.gallery_visible &&
-    phase.page.reveal_mode === "delayed";
-  const countdown = useCountdown(
-    phase.kind === "ready" ? phase.page.reveal_at : null,
-    waiting,
-  );
+    phase.kind === "ready" && !phase.page.gallery_visible && phase.page.reveal_mode === "delayed";
+  const countdown = useCountdown(phase.kind === "ready" ? phase.page.reveal_at : null, waiting);
 
   const items = phase.kind === "ready" ? phase.page.items : [];
 
@@ -156,9 +157,14 @@ export function Gallery({ code }: Props) {
             <p className="muted">Only the host can view this album.</p>
           ) : null}
         </div>
-        <a className="btn secondary" href={`/e/${encodeURIComponent(code)}`}>
-          Add photos
-        </a>
+        <div>
+          <a className="btn secondary" href={`/e/${encodeURIComponent(code)}/wall`}>
+            Live wall
+          </a>{" "}
+          <a className="btn secondary" href={`/e/${encodeURIComponent(code)}`}>
+            Add photos
+          </a>
+        </div>
       </header>
 
       {page.gallery_visible && items.length === 0 ? (

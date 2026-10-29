@@ -11,7 +11,19 @@ import {
 
 export type GuestRow = { id: string; event_id: string; display_name: string };
 
+export class GuestCookieSecretMissingError extends Error {
+  override readonly name = "GuestCookieSecretMissingError";
+}
+
+export const GUEST_COOKIE_SECRET_SETUP_HINT =
+  "Set GUEST_COOKIE_SECRET: pnpm exec wrangler secret put GUEST_COOKIE_SECRET --cwd apps/worker --env production";
+
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+function requireGuestCookieSecret(secret: string | undefined): string {
+  if (!secret) throw new GuestCookieSecretMissingError();
+  return secret;
+}
 
 export function guestCookieName(code: string): string {
   return `wp_guest_${code}`;
@@ -54,6 +66,7 @@ export async function issueGuest(
   eventId: string,
   displayName: string,
 ): Promise<GuestRow> {
+  const cookieSecret = requireGuestCookieSecret(c.env.GUEST_COOKIE_SECRET);
   const guestId = crypto.randomUUID();
   const token = randomToken();
   await c.env.DB.prepare(
@@ -61,7 +74,7 @@ export async function issueGuest(
   )
     .bind(guestId, eventId, displayName, await sha256Hex(token))
     .run();
-  const value = await createGuestCookieValue(c.env.GUEST_COOKIE_SECRET, eventId, guestId, token);
+  const value = await createGuestCookieValue(cookieSecret, eventId, guestId, token);
   setCookie(c, guestCookieName(code), value, {
     httpOnly: true,
     sameSite: "Lax",
@@ -79,7 +92,9 @@ export async function authenticateGuest(
 ): Promise<GuestRow | null> {
   const raw = getCookie(c, guestCookieName(code));
   if (!raw) return null;
-  const parsed = await verifyGuestCookieValue(c.env.GUEST_COOKIE_SECRET, eventId, raw);
+  const cookieSecret = c.env.GUEST_COOKIE_SECRET;
+  if (!cookieSecret) return null;
+  const parsed = await verifyGuestCookieValue(cookieSecret, eventId, raw);
   if (!parsed) return null;
   const row = await c.env.DB.prepare(
     "SELECT id, event_id, display_name, cookie_token_hash FROM guests WHERE id = ? AND event_id = ?",
