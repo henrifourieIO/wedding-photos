@@ -9,7 +9,13 @@ import {
   rowToHostEvent,
   validateRevealAt,
 } from "../lib/hostEvents";
-import { coverObjectKey, extensionFromContentType, presignCoverPut } from "../lib/cover";
+import {
+  coverObjectKey,
+  CoverPresignUnavailableError,
+  coverPresignUnavailableResponse,
+  extensionFromContentType,
+  presignCoverPut,
+} from "../lib/cover";
 import {
   GALLERY_FROM,
   GALLERY_SELECT,
@@ -95,7 +101,7 @@ async function maybeCoverUpload(
   const key = coverObjectKey(eventId, ext);
   const uploadUrl = await presignCoverPut(c.env, key, coverContentType);
   if (!uploadUrl) {
-    throw new Error("cover_presign_unavailable");
+    throw new CoverPresignUnavailableError();
   }
   return { key, uploadUrl };
 }
@@ -166,6 +172,9 @@ host.post("/events", async (c) => {
     }
     return c.json({ event }, 201);
   } catch (error) {
+    if (error instanceof CoverPresignUnavailableError) {
+      return c.json(coverPresignUnavailableResponse(), 503);
+    }
     const message = error instanceof Error ? error.message : "invalid_request";
     return c.json({ error: message }, 400);
   }
@@ -241,6 +250,9 @@ host.patch("/events/:id", async (c) => {
     }
     return c.json({ event });
   } catch (error) {
+    if (error instanceof CoverPresignUnavailableError) {
+      return c.json(coverPresignUnavailableResponse(), 503);
+    }
     const message = error instanceof Error ? error.message : "invalid_request";
     return c.json({ error: message }, 400);
   }
