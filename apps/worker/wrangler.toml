@@ -87,8 +87,10 @@ name = "wedding-photos"
 [env.production.vars]
 ENVIRONMENT = "production"
 R2_BUCKET_NAME = "wedding-photos"
-# Set via dashboard or: pnpm exec wrangler secret put CF_ACCESS_AUD --env production --cwd apps/worker
-# CF_ACCESS_TEAM_DOMAIN = "yourteam.cloudflareaccess.com"
+# Required for host JWT verification (set in dashboard or CLI — do not commit real values):
+# CF_ACCESS_TEAM_DOMAIN — Zero Trust → Settings → Custom pages (team domain)
+# CF_ACCESS_AUD — Access → Applications → app → Application Audience (AUD) Tag
+# Workers & Pages → wedding-photos → Settings → Variables and Secrets → Production
 
 [[env.production.d1_databases]]
 binding = "DB"
