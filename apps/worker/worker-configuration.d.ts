@@ -20,6 +20,8 @@ declare namespace Cloudflare {
     CF_ACCESS_TEAM_DOMAIN?: string;
     CF_ACCESS_AUD?: string;
     DEV_BYPASS_ACCESS?: string;
+    HOST_PASSWORD?: string;
+    HOST_SESSION_SECRET?: string;
     ENVIRONMENT?: string;
   }
 }

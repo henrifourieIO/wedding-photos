@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify, errors, type JWTVerifyGetKey } from "jose";
 import type { MiddlewareHandler } from "hono";
 import type { AppEnv } from "../types";
+import { hasValidHostSession } from "./hostSession";
 
 const JWKS_CACHE_MS = 60 * 60 * 1000;
 
@@ -97,11 +98,14 @@ export async function authenticateHostRequest(
   env: Cloudflare.Env,
   options?: { now?: number; jwks?: JWTVerifyGetKey },
 ): Promise<AccessVerifyResult> {
+  if (env.DEV_BYPASS_ACCESS === "true") {
+    return { ok: true, identity: { sub: "dev-bypass" } };
+  }
+  if (await hasValidHostSession(request, env)) {
+    return { ok: true, identity: { sub: "host-password" } };
+  }
   const token = readAccessJwtFromRequest(request);
   if (!token) {
-    if (env.DEV_BYPASS_ACCESS === "true") {
-      return { ok: true, identity: { sub: "dev-bypass" } };
-    }
     return { ok: false, reason: "missing_token" };
   }
   return verifyAccessJwt(token, env, options);
@@ -110,7 +114,7 @@ export async function authenticateHostRequest(
 export function hostAccessHint(reason: string): string | undefined {
   switch (reason) {
     case "missing_token":
-      return "Add /api/host (and /api/host/*) to the same Access application as /host on this hostname. The SPA calls /api/host/*; without Access on that path, Cf-Access-Jwt-Assertion is not sent.";
+      return "Log in at /host/login (requires HOST_PASSWORD), or configure Cloudflare Access.";
     case "access_not_configured":
       return "Set CF_ACCESS_TEAM_DOMAIN and CF_ACCESS_AUD on the production Worker (wrangler secret or dashboard vars for env production).";
     case "wrong_aud":
@@ -128,7 +132,9 @@ export function hostAccessAuth(): MiddlewareHandler<AppEnv> {
     if (!result.ok) {
       const hint = hostAccessHint(result.reason);
       return c.json(
-        hint ? { error: "unauthorized", reason: result.reason, hint } : { error: "unauthorized", reason: result.reason },
+        hint
+          ? { error: "unauthorized", reason: result.reason, hint }
+          : { error: "unauthorized", reason: result.reason },
         401,
       );
     }

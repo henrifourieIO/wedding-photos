@@ -11,6 +11,29 @@ export type UpsertEventInput = {
   coverContentType?: string;
 };
 
+function redirectToLogin(): void {
+  if (window.location.pathname !== "/host/login") {
+    window.location.assign("/host/login");
+  }
+}
+
+export async function hostLogin(password: string): Promise<void> {
+  const response = await fetch("/api/host/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? "login_failed");
+  }
+}
+
+export async function hostLogout(): Promise<void> {
+  await fetch("/api/host/logout", { method: "POST", credentials: "same-origin" });
+}
+
 async function hostFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (!headers.has("Content-Type")) {
@@ -21,6 +44,7 @@ async function hostFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers,
     credentials: "same-origin",
   });
+  if (response.status === 401) redirectToLogin();
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? `Request failed (${String(response.status)})`);
@@ -88,6 +112,7 @@ export async function deleteHostMedia(eventId: string, mediaId: string): Promise
     method: "DELETE",
     credentials: "same-origin",
   });
+  if (response.status === 401) redirectToLogin();
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? "delete_failed");

@@ -87,7 +87,8 @@ name = "wedding-photos"
 [env.production.vars]
 ENVIRONMENT = "production"
 R2_BUCKET_NAME = "wedding-photos"
-# Required for host JWT verification (set in dashboard or CLI — do not commit real values):
+# Host auth: set HOST_PASSWORD (secret; optional HOST_SESSION_SECRET). Optional Access JWT:
+# (set in dashboard or CLI — do not commit real values):
 # CF_ACCESS_TEAM_DOMAIN — Zero Trust → Settings → Custom pages (team domain)
 # CF_ACCESS_AUD — Access → Applications → app → Application Audience (AUD) Tag
 # Workers & Pages → wedding-photos → Settings → Variables and Secrets → Production
