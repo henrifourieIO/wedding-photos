@@ -161,7 +161,7 @@ Migration `0003_media_processing.sql` adds `reason`, `error`, `processed_at`, `t
 
 ## Guest gallery and reveal
 
-Guest SPA route: `/e/:joinCode/gallery` (masonry grid, lightbox, save/share via Web Share API or download). Polls `GET /api/events/:code/gallery` every few seconds; a future `EventRoom` WebSocket can replace polling when the live wall ships.
+Guest SPA route: `/e/:joinCode/gallery` (masonry grid, lightbox, save/share via Web Share API or download). Updates live over the `EventRoom` Durable Object WebSocket (`GET /api/events/:code/live`; host: `GET /api/host/events/:id/live`), with a 30s poll fallback. TV slideshow: `/e/:code/wall` and `/host/events/:id/wall` (press `f` or double-click for fullscreen). The queue consumer, Stream webhook and host hide/delete notify the room; media not yet revealed is only sent to host sockets.
 
 Visibility for guests: `status = ready`, not host-hidden, and reveal rules from the event — `instant` (immediate), `delayed` (after `reveal_at`), or `private` (host-only; guests see an empty “host-only album” state). The JSON includes `gallery_visible`, `reveal_mode`, and `reveal_at` for countdown UI when the album is still locked.
 

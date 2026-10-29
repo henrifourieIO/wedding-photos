@@ -9,6 +9,7 @@ import {
   setMediaHidden,
 } from "../lib/hostApi";
 import type { HostEventDto, HostMediaItem } from "../lib/hostTypes";
+import { useLive } from "../lib/useLive";
 import { HostLayout } from "./HostLayout";
 import styles from "./host.module.css";
 
@@ -50,6 +51,11 @@ export function EventDetail() {
       alive.current = false;
     };
   }, [id, refreshMedia]);
+
+  const reloadMedia = useCallback(() => {
+    if (id) void refreshMedia(id);
+  }, [id, refreshMedia]);
+  useLive(id ? `/api/host/events/${id}/live` : null, reloadMedia, reloadMedia);
 
   const copyLink = useCallback(async () => {
     if (!event) {
@@ -201,6 +207,9 @@ export function EventDetail() {
               <p className={styles.muted}>Reveal: {event.revealMode}</p>
               {event.revealAt ? <p className={styles.muted}>Reveal at: {event.revealAt}</p> : null}
               <p className={styles.muted}>Video max: {event.videoMaxSeconds}s</p>
+              <Link to={`/host/events/${event.id}/wall`} className={styles.primaryButton}>
+                Open live wall
+              </Link>
               <a className={styles.primaryButton} href={eventZipUrl(event.id)}>
                 Download album ZIP
               </a>

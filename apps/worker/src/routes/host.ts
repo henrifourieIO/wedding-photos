@@ -16,6 +16,7 @@ import {
   toHostMediaItem,
   type GalleryMediaRow,
 } from "../lib/gallery";
+import { announceMedia, buildEnvelope, connectRoom, notifyRoom } from "../lib/room";
 import { deleteMediaObjects } from "../lib/mediaStorage";
 import { buildEventZip } from "../lib/zipExport";
 
@@ -294,12 +295,15 @@ host.patch("/events/:id/media/:mediaId", async (c) => {
   }
   if (typeof body.hidden !== "boolean") return c.json({ error: "invalid_hidden" }, 400);
 
-  const result = await c.env.DB.prepare(
-    "UPDATE media SET hidden = ? WHERE id = ? AND event_id = ?",
-  )
+  const result = await c.env.DB.prepare("UPDATE media SET hidden = ? WHERE id = ? AND event_id = ?")
     .bind(body.hidden ? 1 : 0, mediaId, eventId)
     .run();
   if (result.meta.changes === 0) return c.json({ error: "not_found" }, 404);
+  if (body.hidden) {
+    await notifyRoom(c.env, eventId, buildEnvelope({ type: "media.hidden", id: mediaId }, true));
+  } else {
+    await announceMedia(c.env, mediaId);
+  }
   return c.json({ id: mediaId, hidden: body.hidden });
 });
 
@@ -327,7 +331,15 @@ host.delete("/events/:id/media/:mediaId", async (c) => {
   await c.env.DB.prepare("DELETE FROM media WHERE id = ? AND event_id = ?")
     .bind(mediaId, eventId)
     .run();
+  await notifyRoom(c.env, eventId, buildEnvelope({ type: "media.deleted", id: mediaId }, true));
   return c.body(null, 204);
+});
+
+host.get("/events/:id/live", async (c) => {
+  const eventId = c.req.param("id");
+  const event = await fetchEventById(c.env.DB, eventId, c.get("hostSub"));
+  if (!event) return c.json({ error: "not_found" }, 404);
+  return connectRoom(c.env, eventId, "host", c.req.raw);
 });
 
 host.get("/events/:id/zip", async (c) => {
