@@ -52,12 +52,14 @@ create_d1 "wedding-photos"
 create_r2 "wedding-photos"
 create_kv "wedding-photos-links"
 create_queue "photo-uploaded"
+create_queue "photo-uploaded-dlq"
 
 echo "--- Staging resources ---"
 create_d1 "wedding-photos-staging"
 create_r2 "wedding-photos-staging"
 create_kv "wedding-photos-links-staging"
 create_queue "photo-uploaded-staging"
+create_queue "photo-uploaded-staging-dlq"
 
 echo "--- Next steps ---"
 cat <<'EOF'

@@ -1,0 +1,5 @@
+ALTER TABLE media ADD COLUMN reason TEXT;
+ALTER TABLE media ADD COLUMN error TEXT;
+ALTER TABLE media ADD COLUMN processed_at TEXT;
+ALTER TABLE media ADD COLUMN thumb_key TEXT;
+ALTER TABLE media ADD COLUMN web_key TEXT;
