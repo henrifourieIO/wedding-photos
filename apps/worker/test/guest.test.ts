@@ -102,6 +102,18 @@ describe("guest cookie", () => {
     expect(res.status).toBe(400);
   });
 
+  it("returns 503 when GUEST_COOKIE_SECRET is unset", async () => {
+    const noSecretEnv = { ...env, GUEST_COOKIE_SECRET: undefined } as unknown as TestEnv;
+    const res = await call(json(`/api/events/${CODE}/guests`, { display_name: "Alice" }), noSecretEnv);
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({
+      error: "guest_cookie_secret_not_configured",
+      hint: expect.stringContaining("GUEST_COOKIE_SECRET"),
+    });
+    const count = await env.DB.prepare("SELECT COUNT(*) AS n FROM guests").first<{ n: number }>();
+    expect(count?.n).toBe(0);
+  });
+
   it("verifies signature and event binding", async () => {
     const value = await createGuestCookieValue("s", "e1", "g1", "tok");
     expect(await verifyGuestCookieValue("s", "e1", value)).toEqual({ guestId: "g1", token: "tok" });
