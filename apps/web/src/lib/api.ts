@@ -10,6 +10,28 @@ export type EventInfo = {
 
 export type MediaStatus = "pending" | "uploaded" | "ready" | "rejected" | "failed";
 
+export type GalleryItem = {
+  id: string;
+  kind: "photo" | "video";
+  width: number | null;
+  height: number | null;
+  duration_s: number | null;
+  taken_at: string | null;
+  created_at: string;
+  thumb_url: string | null;
+  web_url: string | null;
+  poster_url: string | null;
+  hls_url: string | null;
+};
+
+export type GalleryPage = {
+  gallery_visible: boolean;
+  reveal_mode: EventInfo["reveal_mode"];
+  reveal_at: string | null;
+  items: GalleryItem[];
+  next_cursor: string | null;
+};
+
 export type MyMedia = {
   id: string;
   kind: string;
@@ -69,6 +91,10 @@ export const api = {
   completeUpload: (code: string, id: string) =>
     post<{ id: string; status: string }>(`${base(code)}/uploads/${id}/complete`),
   myMedia: (code: string) => request<{ media: MyMedia[] }>(`${base(code)}/me/media`),
+  getGallery: (code: string, cursor?: string) => {
+    const q = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+    return request<GalleryPage>(`${base(code)}/gallery${q}`);
+  },
 };
 
 export function putWithProgress(

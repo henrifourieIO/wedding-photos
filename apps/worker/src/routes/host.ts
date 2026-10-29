@@ -10,6 +10,14 @@ import {
   validateRevealAt,
 } from "../lib/hostEvents";
 import { coverObjectKey, extensionFromContentType, presignCoverPut } from "../lib/cover";
+import {
+  GALLERY_FROM,
+  GALLERY_SELECT,
+  toHostMediaItem,
+  type GalleryMediaRow,
+} from "../lib/gallery";
+import { deleteMediaObjects } from "../lib/mediaStorage";
+import { buildEventZip } from "../lib/zipExport";
 
 type CreateEventBody = {
   name?: unknown;
@@ -252,4 +260,104 @@ host.get("/events/:id/qr", async (c) => {
     "Content-Type": "image/svg+xml; charset=utf-8",
     "Cache-Control": "no-store",
   });
+});
+
+host.get("/events/:id/media", async (c) => {
+  const id = c.req.param("id");
+  const hostSub = c.get("hostSub");
+  const row = await fetchEventById(c.env.DB, id, hostSub);
+  if (!row) return c.json({ error: "not_found" }, 404);
+
+  const { results } = await c.env.DB.prepare(
+    `SELECT ${GALLERY_SELECT} ${GALLERY_FROM} WHERE m.event_id = ? ORDER BY m.created_at DESC, m.id DESC LIMIT 2000`,
+  )
+    .bind(id)
+    .all<GalleryMediaRow>();
+
+  return c.json({
+    media: results.map((m) => toHostMediaItem(m, row.join_code)),
+  });
+});
+
+host.patch("/events/:id/media/:mediaId", async (c) => {
+  const eventId = c.req.param("id");
+  const mediaId = c.req.param("mediaId");
+  const hostSub = c.get("hostSub");
+  const event = await fetchEventById(c.env.DB, eventId, hostSub);
+  if (!event) return c.json({ error: "not_found" }, 404);
+
+  let body: { hidden?: unknown };
+  try {
+    body = await c.req.json<{ hidden?: unknown }>();
+  } catch {
+    return c.json({ error: "invalid_json" }, 400);
+  }
+  if (typeof body.hidden !== "boolean") return c.json({ error: "invalid_hidden" }, 400);
+
+  const result = await c.env.DB.prepare(
+    "UPDATE media SET hidden = ? WHERE id = ? AND event_id = ?",
+  )
+    .bind(body.hidden ? 1 : 0, mediaId, eventId)
+    .run();
+  if (result.meta.changes === 0) return c.json({ error: "not_found" }, 404);
+  return c.json({ id: mediaId, hidden: body.hidden });
+});
+
+host.delete("/events/:id/media/:mediaId", async (c) => {
+  const eventId = c.req.param("id");
+  const mediaId = c.req.param("mediaId");
+  const hostSub = c.get("hostSub");
+  const event = await fetchEventById(c.env.DB, eventId, hostSub);
+  if (!event) return c.json({ error: "not_found" }, 404);
+
+  const media = await c.env.DB.prepare(
+    "SELECT kind, r2_key, thumb_key, web_key, stream_uid FROM media WHERE id = ? AND event_id = ?",
+  )
+    .bind(mediaId, eventId)
+    .first<{
+      kind: string;
+      r2_key: string | null;
+      thumb_key: string | null;
+      web_key: string | null;
+      stream_uid: string | null;
+    }>();
+  if (!media) return c.json({ error: "not_found" }, 404);
+
+  await deleteMediaObjects(c.env, c.env.PHOTOS, media);
+  await c.env.DB.prepare("DELETE FROM media WHERE id = ? AND event_id = ?")
+    .bind(mediaId, eventId)
+    .run();
+  return c.body(null, 204);
+});
+
+host.get("/events/:id/zip", async (c) => {
+  const eventId = c.req.param("id");
+  const hostSub = c.get("hostSub");
+  const event = await fetchEventById(c.env.DB, eventId, hostSub);
+  if (!event) return c.json({ error: "not_found" }, 404);
+
+  const { results } = await c.env.DB.prepare(
+    `SELECT id, kind, created_at, r2_key, web_key, stream_uid FROM media
+     WHERE event_id = ? AND status = 'ready' AND hidden = 0
+     ORDER BY created_at ASC, id ASC`,
+  )
+    .bind(eventId)
+    .all<{
+      id: string;
+      kind: string;
+      created_at: string;
+      r2_key: string | null;
+      web_key: string | null;
+      stream_uid: string | null;
+    }>();
+
+  const built = await buildEventZip(c.env, c.env.PHOTOS, event.name, results);
+  if (!built.ok) {
+    const status = built.status as 404 | 413;
+    return c.json(
+      { error: built.error, ...(built.limit !== undefined ? { limit: built.limit } : {}) },
+      status,
+    );
+  }
+  return built.response;
 });

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@cf-wasm/photon": "^0.4.0",
+    "client-zip": "^2.5.1",
     "hono": "^4.7.2",
     "jose": "^6.0.11",
     "qrcode": "1.5.4"

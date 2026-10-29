@@ -1,6 +1,6 @@
-import type { HostEventDto, RevealMode } from "./hostTypes";
+import type { HostEventDto, HostMediaItem, RevealMode } from "./hostTypes";
 
-export type { HostEventDto, RevealMode };
+export type { HostEventDto, HostMediaItem, RevealMode };
 
 export type UpsertEventInput = {
   name: string;
@@ -65,4 +65,35 @@ export async function uploadCover(uploadUrl: string, file: File): Promise<void> 
 
 export function qrImageUrl(eventId: string): string {
   return `/api/host/events/${eventId}/qr`;
+}
+
+export async function listHostMedia(eventId: string): Promise<HostMediaItem[]> {
+  const data = await hostFetch<{ media: HostMediaItem[] }>(`/events/${eventId}/media`);
+  return data.media;
+}
+
+export async function setMediaHidden(
+  eventId: string,
+  mediaId: string,
+  hidden: boolean,
+): Promise<void> {
+  await hostFetch(`/events/${eventId}/media/${mediaId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ hidden }),
+  });
+}
+
+export async function deleteHostMedia(eventId: string, mediaId: string): Promise<void> {
+  const response = await fetch(`/api/host/events/${eventId}/media/${mediaId}`, {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? "delete_failed");
+  }
+}
+
+export function eventZipUrl(eventId: string): string {
+  return `/api/host/events/${eventId}/zip`;
 }

@@ -140,6 +140,32 @@ Routes:
 
 Migration `0003_media_processing.sql` adds `reason`, `error`, `processed_at`, `thumb_key`, `web_key`. Run `scripts/cf-setup.sh` (or `wrangler queues create`) for the new DLQ queues and apply migrations before deploying.
 
+## Guest gallery and reveal
+
+Guest SPA route: `/e/:joinCode/gallery` (masonry grid, lightbox, save/share via Web Share API or download). Polls `GET /api/events/:code/gallery` every few seconds; a future `EventRoom` WebSocket can replace polling when the live wall ships.
+
+Visibility for guests: `status = ready`, not host-hidden, and reveal rules from the event — `instant` (immediate), `delayed` (after `reveal_at`), or `private` (host-only; guests see an empty “host-only album” state). The JSON includes `gallery_visible`, `reveal_mode`, and `reveal_at` for countdown UI when the album is still locked.
+
+Photo tiles load `/api/events/:code/media/:id/thumb` or `web`; videos use stored HLS + poster in the lightbox (`VideoPlayer`). Empty states cover “not revealed yet” and “no photos yet”.
+
+Pagination: `page_size` (default 50, max 100) and `cursor` (base64 JSON of `created_at` + `id`).
+
+## Host moderation and ZIP
+
+Host event page (`/host/events/:id`) lists **all** media via `GET /api/host/events/:id/media` (includes hidden, pending, failed). Actions:
+
+- `PATCH /api/host/events/:id/media/:mediaId` with `{ "hidden": true|false }` — hide from the guest gallery without deleting storage.
+- `DELETE /api/host/events/:id/media/:mediaId` — removes the D1 row and deletes R2 keys (`orig`, `thumb`, `web`) plus the Cloudflare Stream asset when `stream_uid` is set (requires `STREAM_API_TOKEN`).
+
+Bulk download: `GET /api/host/events/:id/zip` streams a ZIP built in the Worker with [`client-zip`](https://github.com/Touffy/client-zip): photos from R2 (`web` preferred, else `orig`), videos by fetching the Stream MP4 download URL (`videodelivery.net/.../downloads/default.mp4`). Limits (documented caps, enforced server-side):
+
+| Limit            | Value                                      |
+| ---------------- | ------------------------------------------ |
+| Max files in ZIP | 200 ready, non-hidden items                |
+| Max ZIP size     | ~2 GB estimated (413 `zip_too_large`)      |
+
+Videos need Stream configured; photos need R2 objects present. Failures for individual entries are skipped until nothing remains (`no_downloadable_media`).
+
 ## Host access (Cloudflare Access)
 
 The host dashboard (`/host/*`) and host API (`/api/host/*`) are protected by **Cloudflare Access** (Zero Trust). The Worker verifies the `Cf-Access-Jwt-Assertion` header using your team domain and application AUD tag.

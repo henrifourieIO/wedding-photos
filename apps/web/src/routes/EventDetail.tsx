@@ -1,16 +1,30 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { listHostEvents, qrImageUrl } from "../lib/hostApi";
-import type { HostEventDto } from "../lib/hostTypes";
+import {
+  deleteHostMedia,
+  eventZipUrl,
+  listHostEvents,
+  listHostMedia,
+  qrImageUrl,
+  setMediaHidden,
+} from "../lib/hostApi";
+import type { HostEventDto, HostMediaItem } from "../lib/hostTypes";
 import { HostLayout } from "./HostLayout";
 import styles from "./host.module.css";
 
 export function EventDetail() {
   const { id } = useParams();
   const [event, setEvent] = useState<HostEventDto | null>(null);
+  const [media, setMedia] = useState<HostMediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [modError, setModError] = useState<string | null>(null);
+
+  const refreshMedia = useCallback(async (eventId: string) => {
+    const rows = await listHostMedia(eventId);
+    setMedia(rows);
+  }, []);
 
   useEffect(() => {
     if (!id) {
@@ -24,6 +38,7 @@ export function EventDetail() {
           throw new Error("not_found");
         }
         if (alive.current) setEvent(row);
+        return refreshMedia(id);
       })
       .catch((err: unknown) => {
         if (alive.current) setError(err instanceof Error ? err.message : "load_failed");
@@ -34,7 +49,7 @@ export function EventDetail() {
     return () => {
       alive.current = false;
     };
-  }, [id]);
+  }, [id, refreshMedia]);
 
   const copyLink = useCallback(async () => {
     if (!event) {
@@ -102,10 +117,34 @@ export function EventDetail() {
     }, "image/png");
   }, [event?.joinCode, id]);
 
+  async function toggleHidden(item: HostMediaItem) {
+    if (!id) return;
+    setModError(null);
+    try {
+      await setMediaHidden(id, item.id, !item.hidden);
+      await refreshMedia(id);
+    } catch (err: unknown) {
+      setModError(err instanceof Error ? err.message : "update_failed");
+    }
+  }
+
+  async function remove(item: HostMediaItem) {
+    if (!id) return;
+    if (!window.confirm("Delete this item permanently?")) return;
+    setModError(null);
+    try {
+      await deleteHostMedia(id, item.id);
+      await refreshMedia(id);
+    } catch (err: unknown) {
+      setModError(err instanceof Error ? err.message : "delete_failed");
+    }
+  }
+
   return (
     <HostLayout>
       {loading ? <p className={styles.muted}>Loading…</p> : null}
       {error ? <p className={styles.error}>{error}</p> : null}
+      {modError ? <p className={styles.error}>{modError}</p> : null}
 
       {event ? (
         <>
@@ -162,8 +201,63 @@ export function EventDetail() {
               <p className={styles.muted}>Reveal: {event.revealMode}</p>
               {event.revealAt ? <p className={styles.muted}>Reveal at: {event.revealAt}</p> : null}
               <p className={styles.muted}>Video max: {event.videoMaxSeconds}s</p>
+              <a className={styles.primaryButton} href={eventZipUrl(event.id)}>
+                Download album ZIP
+              </a>
+              <p className={styles.muted}>
+                ZIP includes up to 200 ready, visible items (photos from R2, videos as MP4).
+              </p>
             </div>
           </div>
+
+          <section className={styles.moderation}>
+            <h2>Album moderation</h2>
+            <p className={styles.muted}>
+              Hosts see every upload, including hidden and processing items.
+            </p>
+            {media.length === 0 ? (
+              <p className={styles.muted}>No uploads yet.</p>
+            ) : (
+              <ul className={styles.mediaGrid}>
+                {media.map((item) => (
+                  <li key={item.id} className={item.hidden ? styles.mediaHidden : undefined}>
+                    {item.kind === "video" ? (
+                      <img src={item.poster_url ?? ""} alt="" className={styles.mediaThumb} />
+                    ) : (
+                      <img
+                        src={item.thumb_url ?? item.web_url ?? ""}
+                        alt=""
+                        className={styles.mediaThumb}
+                      />
+                    )}
+                    <div className={styles.mediaMeta}>
+                      <span>{item.display_name ?? "Guest"}</span>
+                      <span className={styles.muted}>
+                        {item.status}
+                        {item.hidden ? " · hidden" : ""}
+                      </span>
+                    </div>
+                    <div className={styles.buttonRow}>
+                      <button
+                        type="button"
+                        className={styles.secondaryButton}
+                        onClick={() => void toggleHidden(item)}
+                      >
+                        {item.hidden ? "Unhide" : "Hide"}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.secondaryButton}
+                        onClick={() => void remove(item)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </>
       ) : null}
     </HostLayout>
