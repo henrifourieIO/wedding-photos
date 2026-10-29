@@ -68,7 +68,7 @@ export function EventForm() {
         revealMode,
         revealAt: revealMode === "delayed" ? revealAt || null : null,
         videoMaxSeconds,
-        coverContentType: coverFile?.type,
+        ...(coverFile ? { coverContentType: coverFile.type } : {}),
       };
 
       const event =

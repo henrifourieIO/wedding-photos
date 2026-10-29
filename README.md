@@ -78,9 +78,11 @@ The top-level `[vars]` block in `apps/worker/wrangler.toml` sets `DEV_BYPASS_ACC
 
 Stream secrets are covered under [Video (Cloudflare Stream)](#video-cloudflare-stream).
 
-### Guest upload secrets
+### Guest upload secrets (and host cover photos)
 
-Set with `pnpm exec wrangler secret put <NAME> --cwd apps/worker` (add `--env staging` / `--env production` as needed):
+Host event **cover** uploads and guest **photo** uploads both use the same R2 S3-compatible presigned PUT URLs when the secrets below are set. You can create events **without** a cover even when these secrets are missing; only requests that include `coverContentType` need them.
+
+Set on **production** with `pnpm exec wrangler secret put <NAME> --env production --cwd apps/worker` (use `--env staging` for staging):
 
 | Secret                 | Purpose                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------- |
@@ -89,16 +91,16 @@ Set with `pnpm exec wrangler secret put <NAME> --cwd apps/worker` (add `--env st
 | `R2_ACCESS_KEY_ID`     | R2 S3 API access key ID.                                                            |
 | `R2_SECRET_ACCESS_KEY` | R2 S3 API secret access key.                                                        |
 
-`R2_BUCKET_NAME` is a plain var in `wrangler.toml`. Optional var `MAX_UPLOAD_BYTES` overrides the 25 MB photo cap.
+`R2_BUCKET_NAME` is a plain var in `wrangler.toml` (production: `wedding-photos`).
 
-Create the R2 S3 API keys: Cloudflare dashboard -> R2 -> Manage R2 API Tokens -> Create API token -> permission **Object Read & Write**, scoped to the photos bucket. Copy the Access Key ID and Secret Access Key (shown once).
+**Create the R2 S3 API token:** Cloudflare dashboard → **R2** → **Manage R2 API Tokens** → **Create API token** → permission **Object Read & Write**, scoped to the **`wedding-photos`** bucket (staging: `wedding-photos-staging`). Copy the **Access Key ID** and **Secret Access Key** (shown once) into the Worker secrets above.
 
-Browsers PUT directly to R2, so add a CORS rule to the bucket (R2 -> bucket -> Settings -> CORS Policy):
+Browsers PUT directly to R2, so add a CORS rule on the bucket (R2 → bucket → **Settings** → **CORS Policy**). Include your Worker origin, e.g. `https://wedding-photos.<your-subdomain>.workers.dev`:
 
 ```json
 [
   {
-    "AllowedOrigins": ["https://<your-app-origin>"],
+    "AllowedOrigins": ["https://wedding-photos.<your-subdomain>.workers.dev"],
     "AllowedMethods": ["PUT"],
     "AllowedHeaders": ["content-type"],
     "MaxAgeSeconds": 3600
@@ -106,7 +108,7 @@ Browsers PUT directly to R2, so add a CORS rule to the bucket (R2 -> bucket -> S
 ]
 ```
 
-If the R2 S3 secrets are absent (local dev), uploads fall back to `PUT /api/events/:code/uploads/:id/body`, which streams through the Worker into the `PHOTOS` binding. For local dev create `apps/worker/.dev.vars` with `GUEST_COOKIE_SECRET=dev-secret`.
+If the R2 S3 secrets are absent (local dev), guest photo uploads fall back to `PUT /api/events/:code/uploads/:id/body`, which streams through the Worker into the `PHOTOS` binding. Host cover uploads require the R2 secrets when you attach a cover; omit the cover on create/edit otherwise. Optional var `MAX_UPLOAD_BYTES` overrides the 25 MB photo cap. For local dev create `apps/worker/.dev.vars` with `GUEST_COOKIE_SECRET=dev-secret`.
 
 Apply the new migration (`0002_media_upload_fields.sql`) with the `wrangler d1 migrations apply` commands above.
 
