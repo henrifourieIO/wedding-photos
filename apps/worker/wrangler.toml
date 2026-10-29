@@ -11,7 +11,7 @@ not_found_handling = "single-page-application"
 [[d1_databases]]
 binding = "DB"
 database_name = "wedding-photos"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "b4d5fb39-4bf6-423a-b6c7-518efe5ee807"
 
 [[r2_buckets]]
 binding = "PHOTOS"
@@ -19,7 +19,7 @@ bucket_name = "wedding-photos"
 
 [[kv_namespaces]]
 binding = "LINKS"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "c639e02978b54cb38c3767704fbb2059"
 
 [[queues.producers]]
 binding = "PHOTO_QUEUE"
@@ -46,7 +46,7 @@ ENVIRONMENT = "staging"
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "wedding-photos-staging"
-database_id = "REPLACE_WITH_STAGING_D1_DATABASE_ID"
+database_id = "aa76696f-7c3a-4dfd-a5ea-05ef646a35dc"
 
 [[env.staging.r2_buckets]]
 binding = "PHOTOS"
@@ -54,7 +54,7 @@ bucket_name = "wedding-photos-staging"
 
 [[env.staging.kv_namespaces]]
 binding = "LINKS"
-id = "REPLACE_WITH_STAGING_KV_NAMESPACE_ID"
+id = "7a0b645a0acf4a3e80a06de0a492f88b"
 
 [[env.staging.queues.producers]]
 binding = "PHOTO_QUEUE"
@@ -81,7 +81,7 @@ ENVIRONMENT = "production"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "wedding-photos"
-database_id = "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID"
+database_id = "b4d5fb39-4bf6-423a-b6c7-518efe5ee807"
 
 [[env.production.r2_buckets]]
 binding = "PHOTOS"
@@ -89,7 +89,7 @@ bucket_name = "wedding-photos"
 
 [[env.production.kv_namespaces]]
 binding = "LINKS"
-id = "REPLACE_WITH_PRODUCTION_KV_NAMESPACE_ID"
+id = "c639e02978b54cb38c3767704fbb2059"
 
 [[env.production.queues.producers]]
 binding = "PHOTO_QUEUE"
