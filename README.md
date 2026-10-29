@@ -43,10 +43,10 @@ wrangler d1 migrations apply wedding-photos-staging --remote --env staging
 
 **GitHub Actions** (Settings → Secrets and variables → Actions):
 
-| Secret | Purpose |
-|--------|---------|
-| `CLOUDFLARE_API_TOKEN` | Deploy token (Workers, D1, R2, KV, Queues, etc.) |
-| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
+| Secret                  | Purpose                                          |
+| ----------------------- | ------------------------------------------------ |
+| `CLOUDFLARE_API_TOKEN`  | Deploy token (Workers, D1, R2, KV, Queues, etc.) |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID                       |
 
 Pushes to `main` run `.github/workflows/deploy.yml` and deploy the production Worker. PRs run typecheck, lint, and tests via `.github/workflows/ci.yml`.
 
@@ -56,12 +56,12 @@ Pushes to `main` run `.github/workflows/deploy.yml` and deploy the production Wo
 
 Set with `wrangler secret put <NAME>` (add `--env staging` / `--env production` as needed):
 
-| Secret | Purpose |
-|--------|---------|
-| `GUEST_COOKIE_SECRET` | HMAC key for the signed guest cookie. Generate with `openssl rand -base64 32`. |
-| `R2_ACCOUNT_ID` | Cloudflare account ID, used for the R2 S3 endpoint `<id>.r2.cloudflarestorage.com`. |
-| `R2_ACCESS_KEY_ID` | R2 S3 API access key ID. |
-| `R2_SECRET_ACCESS_KEY` | R2 S3 API secret access key. |
+| Secret                 | Purpose                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `GUEST_COOKIE_SECRET`  | HMAC key for the signed guest cookie. Generate with `openssl rand -base64 32`.      |
+| `R2_ACCOUNT_ID`        | Cloudflare account ID, used for the R2 S3 endpoint `<id>.r2.cloudflarestorage.com`. |
+| `R2_ACCESS_KEY_ID`     | R2 S3 API access key ID.                                                            |
+| `R2_SECRET_ACCESS_KEY` | R2 S3 API secret access key.                                                        |
 
 `R2_BUCKET_NAME` is a plain var in `wrangler.toml`. Optional var `MAX_UPLOAD_BYTES` overrides the 25 MB photo cap.
 
