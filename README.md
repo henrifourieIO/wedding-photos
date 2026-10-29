@@ -57,7 +57,7 @@ pnpm exec wrangler d1 migrations apply wedding-photos-staging --remote --env sta
 
 Pushes to `main` run `.github/workflows/deploy.yml` and deploy the production Worker. PRs run typecheck, lint, and tests via `.github/workflows/ci.yml`.
 
-**Worker secrets** (add when implementing Stream): `STREAM_API_TOKEN`, `STREAM_WEBHOOK_SECRET` via `pnpm exec wrangler secret put <NAME> --cwd apps/worker`.
+Stream secrets are covered under [Video (Cloudflare Stream)](#video-cloudflare-stream).
 
 ### Guest upload secrets
 
@@ -91,6 +91,35 @@ If the R2 S3 secrets are absent (local dev), uploads fall back to `PUT /api/even
 
 Apply the new migration (`0002_media_upload_fields.sql`) with the `wrangler d1 migrations apply` commands above.
 
+## Video (Cloudflare Stream)
+
+Guests upload videos straight to Cloudflare Stream (direct creator uploads); Stream transcodes (including iPhone HEVC `.mov`) and calls back a signed webhook that flips the clip to `ready`.
+
+1. Enable Stream: dashboard -> Stream -> subscribe (a paid add-on).
+2. Create an API token with **Account -> Stream -> Edit** (the deploy token from the plan already includes it, or make a dedicated one).
+3. Set Worker secrets/vars (add `--env staging` / `--env production` as needed):
+
+   ```bash
+   pnpm exec wrangler secret put STREAM_API_TOKEN --cwd apps/worker
+   pnpm exec wrangler secret put STREAM_ACCOUNT_ID --cwd apps/worker   # optional; falls back to R2_ACCOUNT_ID
+   ```
+
+4. Register the webhook once per environment and store the printed signing secret:
+
+   ```bash
+   CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... \
+     ./scripts/stream-webhook.sh https://<app-origin>/api/webhooks/stream
+   pnpm exec wrangler secret put STREAM_WEBHOOK_SECRET --cwd apps/worker
+   ```
+
+   Stream supports one webhook URL per account, so staging and production need separate Cloudflare accounts or you re-register when switching.
+
+5. Apply migration `0004_media_video.sql` (see commands above).
+
+Notes: clips over 200 MB use the tus (resumable) endpoint, otherwise a one-time upload URL; max clip length comes from `events.video_max_seconds` (default 60). Optional var `MAX_VIDEO_BYTES` caps upload size (default 5 GB). The web `VideoPlayer` component (`apps/web/src/components/VideoPlayer.tsx`) plays the stored HLS URL (native on Safari, `hls.js` elsewhere).
+
+**Cost:** Stream bills per minute stored (about $5 per 1,000 minutes) and per minute delivered (about $1 per 1,000 minutes); encoding and ingress are free. Example: 200 guests x 5 clips x 20 s is roughly 330 stored minutes, about $1.70 per month, plus delivery. Check current pricing at cloudflare.com/products/stream.
+
 ## Host access (Cloudflare Access)
 
 The host dashboard (`/host/*`) and host API (`/api/host/*`) are protected by **Cloudflare Access** (Zero Trust). The Worker verifies the `Cf-Access-Jwt-Assertion` header using your team domain and application AUD tag.
@@ -107,10 +136,10 @@ The host dashboard (`/host/*`) and host API (`/api/host/*`) are protected by **C
 
 Set these on the production (and staging) Worker—via `wrangler.toml` `[vars]` or `wrangler secret` as you prefer:
 
-| Variable | Example | Purpose |
-|----------|---------|---------|
+| Variable                | Example                         | Purpose                                          |
+| ----------------------- | ------------------------------- | ------------------------------------------------ |
 | `CF_ACCESS_TEAM_DOMAIN` | `yourteam.cloudflareaccess.com` | Zero Trust team domain (Settings → Custom pages) |
-| `CF_ACCESS_AUD` | (AUD tag from the Access app) | Audience claim for JWT verification |
+| `CF_ACCESS_AUD`         | (AUD tag from the Access app)   | Audience claim for JWT verification              |
 
 Do **not** set `DEV_BYPASS_ACCESS` in production. Local `wrangler dev` uses `DEV_BYPASS_ACCESS=true` in the default `[vars]` block so you can use `/host` without Access.
 
@@ -121,3 +150,4 @@ Guest routes stay public and use per-event join codes only.
 - `apps/worker` — Hono on Cloudflare Workers, D1, R2, KV, Queues, Durable Object `EventRoom`
 - `apps/web` — React + Vite SPA (static assets binding)
 - `scripts/cf-setup.sh` — one-time Cloudflare resource creation
+- `scripts/stream-webhook.sh` — registers the Stream webhook and prints its signing secret

@@ -71,7 +71,8 @@ export function EventForm() {
         coverContentType: coverFile?.type,
       };
 
-      const event = isEdit && id ? await updateHostEvent(id, payload) : await createHostEvent(payload);
+      const event =
+        isEdit && id ? await updateHostEvent(id, payload) : await createHostEvent(payload);
 
       if (coverFile && event.coverUpload) {
         await uploadCover(event.coverUpload.uploadUrl, coverFile);

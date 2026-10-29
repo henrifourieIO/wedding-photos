@@ -121,12 +121,24 @@ export function EventDetail() {
 
           <div className={styles.detailGrid}>
             <div className={styles.qrPanel}>
-              <img src={qrImageUrl(event.id)} alt={`QR code for ${event.name}`} className={styles.qrImage} />
+              <img
+                src={qrImageUrl(event.id)}
+                alt={`QR code for ${event.name}`}
+                className={styles.qrImage}
+              />
               <div className={styles.buttonRow}>
-                <button type="button" className={styles.secondaryButton} onClick={() => void downloadSvg()}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => void downloadSvg()}
+                >
                   Download SVG
                 </button>
-                <button type="button" className={styles.secondaryButton} onClick={() => void downloadPng()}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => void downloadPng()}
+                >
                   Download PNG
                 </button>
               </div>
@@ -137,7 +149,11 @@ export function EventDetail() {
                 <span>Guest link</span>
                 <div className={styles.copyRow}>
                   <input readOnly value={event.guestUrl} />
-                  <button type="button" className={styles.primaryButton} onClick={() => void copyLink()}>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void copyLink()}
+                  >
                     {copied ? "Copied" : "Copy"}
                   </button>
                 </div>

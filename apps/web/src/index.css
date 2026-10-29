@@ -233,3 +233,29 @@ body {
 .queue-info progress {
   width: 100%;
 }
+
+.countdown {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgb(179 38 30 / 0.9);
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.shutter.recording {
+  background: #b3261e;
+}
+
+.queue-item video {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.queue-item.processing .queue-status {
+  color: #8a6d00;
+}

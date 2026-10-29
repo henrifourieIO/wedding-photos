@@ -141,7 +141,6 @@ describe("uploads", () => {
     );
     expect((await call(json(path, { ...photo, size: 26 * 1024 * 1024 }, cookie))).status).toBe(413);
     expect((await call(json(path, { ...photo, size: 0 }, cookie))).status).toBe(400);
-    expect((await call(json(path, { ...photo, kind: "video" }, cookie))).status).toBe(501);
   });
 
   it("creates, uploads via proxy, completes, enqueues and lists", async () => {

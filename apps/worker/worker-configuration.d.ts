@@ -13,6 +13,8 @@ declare namespace Cloudflare {
     R2_SECRET_ACCESS_KEY?: string;
     R2_BUCKET_NAME?: string;
     MAX_UPLOAD_BYTES?: string;
+    MAX_VIDEO_BYTES?: string;
+    STREAM_ACCOUNT_ID?: string;
     STREAM_API_TOKEN?: string;
     STREAM_WEBHOOK_SECRET?: string;
     CF_ACCESS_TEAM_DOMAIN?: string;

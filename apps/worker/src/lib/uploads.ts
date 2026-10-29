@@ -8,6 +8,15 @@ export const PHOTO_TYPES = {
   "image/webp": "webp",
 } as const;
 
+export const VIDEO_TYPES = {
+  "video/mp4": "mp4",
+  "video/quicktime": "mov",
+  "video/webm": "webm",
+} as const;
+
+export type VideoContentType = keyof typeof VIDEO_TYPES;
+export const DEFAULT_MAX_VIDEO_BYTES = 5 * 1024 * 1024 * 1024;
+
 export type PhotoContentType = keyof typeof PHOTO_TYPES;
 export type UploadKind = "photo" | "video";
 
@@ -17,6 +26,15 @@ export const UPLOAD_RATE_WINDOW_SECONDS = 600;
 
 export function isPhotoContentType(value: string): value is PhotoContentType {
   return Object.prototype.hasOwnProperty.call(PHOTO_TYPES, value);
+}
+
+export function isVideoContentType(value: string): value is VideoContentType {
+  return Object.prototype.hasOwnProperty.call(VIDEO_TYPES, value);
+}
+
+export function maxVideoBytes(env: Cloudflare.Env): number {
+  const parsed = Number.parseInt(env.MAX_VIDEO_BYTES ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_VIDEO_BYTES;
 }
 
 export function parseKind(value: unknown): UploadKind | null {

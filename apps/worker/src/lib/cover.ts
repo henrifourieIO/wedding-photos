@@ -17,7 +17,12 @@ export function extensionFromContentType(contentType: string): string {
 }
 
 export function r2PresignConfig(env: Cloudflare.Env): R2PresignConfig | null {
-  if (!env.R2_ACCOUNT_ID || !env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY || !env.R2_BUCKET_NAME) {
+  if (
+    !env.R2_ACCOUNT_ID ||
+    !env.R2_ACCESS_KEY_ID ||
+    !env.R2_SECRET_ACCESS_KEY ||
+    !env.R2_BUCKET_NAME
+  ) {
     return null;
   }
   return {

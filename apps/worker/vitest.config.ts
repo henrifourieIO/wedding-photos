@@ -12,6 +12,9 @@ export default defineWorkersConfig(async () => {
             bindings: {
               TEST_MIGRATIONS: migrations,
               GUEST_COOKIE_SECRET: "test-cookie-secret",
+              STREAM_ACCOUNT_ID: "acct",
+              STREAM_API_TOKEN: "tok",
+              STREAM_WEBHOOK_SECRET: "whsec",
             },
           },
         },

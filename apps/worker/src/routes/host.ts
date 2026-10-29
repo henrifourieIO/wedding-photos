@@ -57,7 +57,11 @@ function parseStartsAt(value: unknown): string | null {
   return value;
 }
 
-async function fetchEventById(db: D1Database, id: string, hostSub: string): Promise<EventRow | null> {
+async function fetchEventById(
+  db: D1Database,
+  id: string,
+  hostSub: string,
+): Promise<EventRow | null> {
   const row = await db
     .prepare(
       `SELECT id, host_sub, name, starts_at, cover_key, join_code, reveal_mode, reveal_at, video_max_seconds, created_at
@@ -99,7 +103,9 @@ host.get("/events", async (c) => {
     .bind(hostSub)
     .all<EventRow>();
 
-  const events = results.map((row) => rowToHostEvent(row, guestUrlFromRequest(c.req.url, row.join_code)));
+  const events = results.map((row) =>
+    rowToHostEvent(row, guestUrlFromRequest(c.req.url, row.join_code)),
+  );
   return c.json({ events });
 });
 

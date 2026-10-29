@@ -41,7 +41,10 @@ export async function createHostEvent(input: UpsertEventInput): Promise<HostEven
   return data.event;
 }
 
-export async function updateHostEvent(id: string, input: Partial<UpsertEventInput>): Promise<HostEventDto> {
+export async function updateHostEvent(
+  id: string,
+  input: Partial<UpsertEventInput>,
+): Promise<HostEventDto> {
   const data = await hostFetch<{ event: HostEventDto }>(`/events/${id}`, {
     method: "PATCH",
     body: JSON.stringify(input),
