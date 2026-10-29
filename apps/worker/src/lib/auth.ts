@@ -107,11 +107,30 @@ export async function authenticateHostRequest(
   return verifyAccessJwt(token, env, options);
 }
 
+export function hostAccessHint(reason: string): string | undefined {
+  switch (reason) {
+    case "missing_token":
+      return "Add /api/host (and /api/host/*) to the same Access application as /host on this hostname. The SPA calls /api/host/*; without Access on that path, Cf-Access-Jwt-Assertion is not sent.";
+    case "access_not_configured":
+      return "Set CF_ACCESS_TEAM_DOMAIN and CF_ACCESS_AUD on the production Worker (wrangler secret or dashboard vars for env production).";
+    case "wrong_aud":
+      return "CF_ACCESS_AUD must exactly match the Access application's AUD tag (Application → Overview → AUD).";
+    case "expired":
+      return "Access session expired; refresh the page and sign in again.";
+    default:
+      return undefined;
+  }
+}
+
 export function hostAccessAuth(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const result = await authenticateHostRequest(c.req.raw, c.env);
     if (!result.ok) {
-      return c.json({ error: "unauthorized", reason: result.reason }, 401);
+      const hint = hostAccessHint(result.reason);
+      return c.json(
+        hint ? { error: "unauthorized", reason: result.reason, hint } : { error: "unauthorized", reason: result.reason },
+        401,
+      );
     }
     c.set("hostSub", result.identity.sub);
     await next();

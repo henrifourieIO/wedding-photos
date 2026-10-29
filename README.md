@@ -197,18 +197,35 @@ The host dashboard (`/host/*`) and host API (`/api/host/*`) are protected by **C
 4. **Policies**: Allow → Include → **Emails** → your host email only.
 5. Save the application and copy the **AUD** tag from the application settings.
 
-### Worker configuration
+### Worker configuration (required for production)
 
-Set these on the production (and staging) Worker—via `wrangler.toml` `[vars]` or `wrangler secret` as you prefer:
+`auth.ts` reads **`CF_ACCESS_TEAM_DOMAIN`** and **`CF_ACCESS_AUD`** from the Worker **environment** (`c.env`). In Cloudflare these may be **Variables** or **Secrets**; both are exposed to the Worker the same way. **Do not commit real values in git.**
+
+The production deploy uses `[env.production]` in `apps/worker/wrangler.toml`. That block must define these bindings in the dashboard (or via `wrangler secret` / `wrangler var`); commented placeholders in `wrangler.toml` are documentation only.
 
 | Variable                | Example                         | Purpose                                          |
 | ----------------------- | ------------------------------- | ------------------------------------------------ |
 | `CF_ACCESS_TEAM_DOMAIN` | `yourteam.cloudflareaccess.com` | Zero Trust team domain (Settings → Custom pages) |
 | `CF_ACCESS_AUD`         | (AUD tag from the Access app)   | Audience claim for JWT verification              |
 
-Do **not** set `DEV_BYPASS_ACCESS` in production. Local `wrangler dev` uses `DEV_BYPASS_ACCESS=true` in the default `[vars]` block so you can use `/host` without Access.
+**Dashboard (fastest fix for `401` / `reason: access_not_configured`):**
 
-Guest routes stay public and use per-event join codes only.
+1. [Cloudflare dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **wedding-photos** → **Settings** → **Variables and Secrets**.
+2. Open the **Production** environment (matches `wrangler deploy --env production`).
+3. Add **Variable** (plain text is fine):
+   - Name: `CF_ACCESS_TEAM_DOMAIN` — value: your team domain from Zero Trust → **Settings** → **Custom pages** (format `something.cloudflareaccess.com`).
+   - Name: `CF_ACCESS_AUD` — value: **Application Audience (AUD) Tag** from your Access app (Access → Applications → your app → Overview). You can store AUD as a **Secret** instead if you prefer; the Worker code does not distinguish.
+4. **Save**. Worker environment variables usually apply without a new deploy; if host API still returns `access_not_configured`, trigger a deploy from **Deployments** or run `pnpm exec wrangler deploy --env production --cwd apps/worker`.
+
+**CLI alternative** (same bindings, nothing in git):
+
+```bash
+cd apps/worker
+pnpm exec wrangler var put CF_ACCESS_TEAM_DOMAIN --env production
+pnpm exec wrangler secret put CF_ACCESS_AUD --env production
+```
+
+If the JSON error is `missing_token` instead, add `/api/host` to the Access application paths (see below), not only `/host`.
 
 ## Repository layout
 
