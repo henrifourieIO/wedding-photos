@@ -5,6 +5,7 @@ import {
   type StreamOutcome,
   type StreamWebhookPayload,
 } from "../lib/stream";
+import { announceMedia } from "../lib/room";
 import { assertNever } from "../types";
 
 export const webhooks = new Hono<{ Bindings: Cloudflare.Env }>();
@@ -53,5 +54,11 @@ webhooks.post("/webhooks/stream", async (c) => {
   if (!payload.uid) return c.json({ error: "invalid_body" }, 400);
 
   const changes = await applyOutcome(c.env.DB, payload.uid, classifyWebhook(payload));
+  if (changes > 0) {
+    const row = await c.env.DB.prepare("SELECT id FROM media WHERE stream_uid = ?")
+      .bind(payload.uid)
+      .first<{ id: string }>();
+    if (row) await announceMedia(c.env, row.id);
+  }
   return c.json({ ok: true, updated: changes > 0 });
 });

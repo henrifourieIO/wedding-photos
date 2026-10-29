@@ -31,6 +31,7 @@ import {
   originalKey,
   parseKind,
 } from "../lib/uploads";
+import { connectRoom } from "../lib/room";
 import { createVideoUpload } from "../lib/video";
 import type { PhotoQueueMessage } from "../types";
 
@@ -274,6 +275,12 @@ guest.post("/events/:code/uploads/:id/complete", async (c) => {
     await c.env.PHOTO_QUEUE.send(message);
   }
   return c.json({ id: media.id, status: "uploaded", size: head.size });
+});
+
+guest.get("/events/:code/live", async (c) => {
+  const event = await loadEvent(c);
+  if (!event) return c.json(NOT_FOUND, 404);
+  return connectRoom(c.env, event.id, "guest", c.req.raw);
 });
 
 guest.get("/events/:code/gallery", async (c) => {

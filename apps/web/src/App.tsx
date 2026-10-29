@@ -1,10 +1,14 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { BrowserRouter, Route, Routes, useParams } from "react-router-dom";
 import { Event } from "./routes/Event";
 import { Gallery } from "./routes/Gallery";
 import { EventDetail } from "./routes/EventDetail";
 import { EventForm } from "./routes/EventForm";
+import { listHostEvents } from "./lib/hostApi";
+import { Wall } from "./routes/Wall";
 import { HostDashboard } from "./routes/HostDashboard";
 
+const GUEST_WALL = /^\/e\/([A-Za-z0-9_-]+)\/wall\/?$/;
 const GUEST_GALLERY = /^\/e\/([A-Za-z0-9_-]+)\/gallery\/?$/;
 const GUEST_ROUTE = /^\/e\/([A-Za-z0-9_-]+)\/?$/;
 
@@ -20,6 +24,17 @@ function Landing() {
   );
 }
 
+function HostWall() {
+  const { id } = useParams();
+  const [code, setCode] = useState<string | null>(null);
+  useEffect(() => {
+    void listHostEvents().then((events) => {
+      setCode(events.find((e) => e.id === id)?.joinCode ?? null);
+    });
+  }, [id]);
+  return code && id ? <Wall code={code} livePath={`/api/host/events/${id}/live`} /> : null;
+}
+
 function HostRoutes() {
   return (
     <BrowserRouter>
@@ -27,6 +42,7 @@ function HostRoutes() {
         <Route path="/host" element={<HostDashboard />} />
         <Route path="/host/new" element={<EventForm />} />
         <Route path="/host/events/:id" element={<EventDetail />} />
+        <Route path="/host/events/:id/wall" element={<HostWall />} />
         <Route path="/host/events/:id/edit" element={<EventForm />} />
       </Routes>
     </BrowserRouter>
@@ -34,6 +50,10 @@ function HostRoutes() {
 }
 
 export function App() {
+  const wallMatch = GUEST_WALL.exec(window.location.pathname);
+  if (wallMatch?.[1]) {
+    return <Wall code={wallMatch[1]} livePath={`/api/events/${wallMatch[1]}/live`} />;
+  }
   const galleryMatch = GUEST_GALLERY.exec(window.location.pathname);
   if (galleryMatch?.[1]) return <Gallery code={galleryMatch[1]} />;
 

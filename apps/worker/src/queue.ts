@@ -1,4 +1,5 @@
 import { MAX_ATTEMPTS, markFailed, processPhoto } from "./lib/process";
+import { announceMedia } from "./lib/room";
 import type { PhotoQueueMessage } from "./types";
 
 const RETRY_BASE_SECONDS = 10;
@@ -9,11 +10,13 @@ export async function handlePhotoQueueBatch(
 ): Promise<void> {
   for (const message of batch.messages) {
     try {
-      await processPhoto(env, message.body.mediaId);
+      const outcome = await processPhoto(env, message.body.mediaId);
+      if (outcome !== "skipped") await announceMedia(env, message.body.mediaId);
       message.ack();
     } catch (error) {
       if (message.attempts >= MAX_ATTEMPTS) {
         await markFailed(env, message.body.mediaId, error);
+        await announceMedia(env, message.body.mediaId);
         message.ack();
       } else {
         message.retry({ delaySeconds: RETRY_BASE_SECONDS * 2 ** (message.attempts - 1) });
