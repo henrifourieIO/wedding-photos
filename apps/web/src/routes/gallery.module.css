@@ -1,0 +1,104 @@
+.shell {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: max(1rem, env(safe-area-inset-top)) 1rem max(2rem, env(safe-area-inset-bottom));
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  background: #fff;
+  border-radius: 16px;
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+}
+
+.masonry {
+  column-count: 2;
+  column-gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .masonry {
+    column-count: 3;
+  }
+}
+
+.tile {
+  break-inside: avoid;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  width: 100%;
+  position: relative;
+  background: #eee;
+}
+
+.tileMedia {
+  width: 100%;
+  display: block;
+  vertical-align: bottom;
+}
+
+.badge {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(0 0 0 / 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.lightboxInner {
+  max-width: min(960px, 100%);
+  width: 100%;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.lightboxInner img,
+.lightboxInner video {
+  width: 100%;
+  max-height: 75vh;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
+}
+
+.lightboxActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}

@@ -1,9 +1,11 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Event } from "./routes/Event";
+import { Gallery } from "./routes/Gallery";
 import { EventDetail } from "./routes/EventDetail";
 import { EventForm } from "./routes/EventForm";
 import { HostDashboard } from "./routes/HostDashboard";
 
+const GUEST_GALLERY = /^\/e\/([A-Za-z0-9_-]+)\/gallery\/?$/;
 const GUEST_ROUTE = /^\/e\/([A-Za-z0-9_-]+)\/?$/;
 
 function Landing() {
@@ -32,6 +34,9 @@ function HostRoutes() {
 }
 
 export function App() {
+  const galleryMatch = GUEST_GALLERY.exec(window.location.pathname);
+  if (galleryMatch?.[1]) return <Gallery code={galleryMatch[1]} />;
+
   const match = GUEST_ROUTE.exec(window.location.pathname);
   if (match?.[1]) return <Event code={match[1]} />;
 

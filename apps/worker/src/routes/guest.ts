@@ -1,6 +1,17 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { consumeRateLimit } from "../lib/ratelimit";
+import {
+  decodeCursor,
+  encodeCursor,
+  GALLERY_FROM,
+  GALLERY_SELECT,
+  guestGalleryOpen,
+  isReadyForGallery,
+  parsePageSize,
+  toGalleryItem,
+  type GalleryMediaRow,
+} from "../lib/gallery";
 import { isGalleryVisible, resolveEvent, type EventRow } from "../lib/events";
 import { authenticateGuest, issueGuest, normalizeDisplayName, type GuestRow } from "../lib/guest";
 import { presignR2Put, type R2PresignConfig } from "../lib/r2";
@@ -246,6 +257,57 @@ guest.post("/events/:code/uploads/:id/complete", async (c) => {
     await c.env.PHOTO_QUEUE.send(message);
   }
   return c.json({ id: media.id, status: "uploaded", size: head.size });
+});
+
+guest.get("/events/:code/gallery", async (c) => {
+  const event = await loadEvent(c);
+  if (!event) return c.json(NOT_FOUND, 404);
+
+  const visible = guestGalleryOpen(event);
+  const pageSize = parsePageSize(c.req.query("page_size"));
+  const cursor = decodeCursor(c.req.query("cursor"));
+
+  if (!visible) {
+    return c.json({
+      gallery_visible: false,
+      reveal_mode: event.reveal_mode,
+      reveal_at: event.reveal_at,
+      items: [],
+      next_cursor: null,
+    });
+  }
+
+  const sql = cursor
+    ? `SELECT ${GALLERY_SELECT} ${GALLERY_FROM}
+       WHERE m.event_id = ? AND m.status = 'ready' AND m.hidden = 0
+         AND (m.created_at < ? OR (m.created_at = ? AND m.id < ?))
+       ORDER BY m.created_at DESC, m.id DESC LIMIT ?`
+    : `SELECT ${GALLERY_SELECT} ${GALLERY_FROM}
+       WHERE m.event_id = ? AND m.status = 'ready' AND m.hidden = 0
+       ORDER BY m.created_at DESC, m.id DESC LIMIT ?`;
+
+  const stmt = c.env.DB.prepare(sql);
+  const bound = cursor
+    ? stmt.bind(event.id, cursor.created_at, cursor.created_at, cursor.id, pageSize + 1)
+    : stmt.bind(event.id, pageSize + 1);
+
+  const { results } = await bound.all<GalleryMediaRow>();
+  const slice = results.slice(0, pageSize);
+  const next =
+    results.length > pageSize
+      ? encodeCursor({
+          created_at: slice[slice.length - 1]?.created_at ?? "",
+          id: slice[slice.length - 1]?.id ?? "",
+        })
+      : null;
+
+  return c.json({
+    gallery_visible: true,
+    reveal_mode: event.reveal_mode,
+    reveal_at: event.reveal_at,
+    items: slice.filter(isReadyForGallery).map((row) => toGalleryItem(row, event.join_code)),
+    next_cursor: next,
+  });
 });
 
 guest.get("/events/:code/me/media", async (c) => {

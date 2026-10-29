@@ -124,6 +124,11 @@ export function Camera({ code, event, displayName }: Props) {
             ? `${String(Math.max(uploadedEarlier, doneCount))} shared so far.`
             : "Add your first photo."}
         </p>
+        <p>
+          <a className="btn ghost" href={`/e/${encodeURIComponent(code)}/gallery`}>
+            View gallery
+          </a>
+        </p>
       </header>
 
       {canStream ? (

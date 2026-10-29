@@ -146,6 +146,18 @@ export type StreamOutcome =
   | { type: "failed" }
   | { type: "ignore" };
 
+export function streamMp4DownloadUrl(_accountId: string, uid: string): string {
+  return `https://videodelivery.net/${uid}/downloads/default.mp4`;
+}
+
+export async function deleteStreamVideo(config: StreamConfig, uid: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/accounts/${config.accountId}/stream/${uid}`, {
+    method: "DELETE",
+    headers: { authorization: `Bearer ${config.apiToken}` },
+  });
+  if (!res.ok && res.status !== 404) throw new StreamError(res.status);
+}
+
 export function classifyWebhook(payload: StreamWebhookPayload): StreamOutcome {
   if (payload.status?.state === "error") return { type: "failed" };
   if (payload.readyToStream === true) {
