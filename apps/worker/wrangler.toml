@@ -8,6 +8,9 @@ directory = "../web/dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
 
+[vars]
+R2_BUCKET_NAME = "wedding-photos"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "wedding-photos"
@@ -42,6 +45,7 @@ name = "wedding-photos-staging"
 
 [env.staging.vars]
 ENVIRONMENT = "staging"
+R2_BUCKET_NAME = "wedding-photos-staging"
 
 [[env.staging.d1_databases]]
 binding = "DB"
@@ -77,6 +81,7 @@ name = "wedding-photos"
 
 [env.production.vars]
 ENVIRONMENT = "production"
+R2_BUCKET_NAME = "wedding-photos"
 
 [[env.production.d1_databases]]
 binding = "DB"

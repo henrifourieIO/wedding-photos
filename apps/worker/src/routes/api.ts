@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { guest } from "./guest";
 import { assertNever, type RevealMode } from "../types";
 
 export type AppEnv = {
@@ -24,3 +25,5 @@ api.get("/health", (c) => {
   const revealModes = (["instant", "delayed", "private"] as const).map(describeRevealMode);
   return c.json({ ok: true, service: "wedding-photos", revealModes });
 });
+
+api.route("/", guest);

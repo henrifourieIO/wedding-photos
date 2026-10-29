@@ -43,14 +43,46 @@ wrangler d1 migrations apply wedding-photos-staging --remote --env staging
 
 **GitHub Actions** (Settings → Secrets and variables → Actions):
 
-| Secret | Purpose |
-|--------|---------|
-| `CLOUDFLARE_API_TOKEN` | Deploy token (Workers, D1, R2, KV, Queues, etc.) |
-| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
+| Secret                  | Purpose                                          |
+| ----------------------- | ------------------------------------------------ |
+| `CLOUDFLARE_API_TOKEN`  | Deploy token (Workers, D1, R2, KV, Queues, etc.) |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID                       |
 
 Pushes to `main` run `.github/workflows/deploy.yml` and deploy the production Worker. PRs run typecheck, lint, and tests via `.github/workflows/ci.yml`.
 
 **Worker secrets** (add when implementing Stream): `STREAM_API_TOKEN`, `STREAM_WEBHOOK_SECRET` via `wrangler secret put`.
+
+### Guest upload secrets
+
+Set with `wrangler secret put <NAME>` (add `--env staging` / `--env production` as needed):
+
+| Secret                 | Purpose                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `GUEST_COOKIE_SECRET`  | HMAC key for the signed guest cookie. Generate with `openssl rand -base64 32`.      |
+| `R2_ACCOUNT_ID`        | Cloudflare account ID, used for the R2 S3 endpoint `<id>.r2.cloudflarestorage.com`. |
+| `R2_ACCESS_KEY_ID`     | R2 S3 API access key ID.                                                            |
+| `R2_SECRET_ACCESS_KEY` | R2 S3 API secret access key.                                                        |
+
+`R2_BUCKET_NAME` is a plain var in `wrangler.toml`. Optional var `MAX_UPLOAD_BYTES` overrides the 25 MB photo cap.
+
+Create the R2 S3 API keys: Cloudflare dashboard -> R2 -> Manage R2 API Tokens -> Create API token -> permission **Object Read & Write**, scoped to the photos bucket. Copy the Access Key ID and Secret Access Key (shown once).
+
+Browsers PUT directly to R2, so add a CORS rule to the bucket (R2 -> bucket -> Settings -> CORS Policy):
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://<your-app-origin>"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["content-type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+If the R2 S3 secrets are absent (local dev), uploads fall back to `PUT /api/events/:code/uploads/:id/body`, which streams through the Worker into the `PHOTOS` binding. For local dev create `apps/worker/.dev.vars` with `GUEST_COOKIE_SECRET=dev-secret`.
+
+Apply the new migration (`0002_media_upload_fields.sql`) with the `wrangler d1 migrations apply` commands above.
 
 ## Host access (Cloudflare Access)
 
