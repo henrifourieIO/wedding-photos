@@ -41,7 +41,7 @@ bindings = [{ name = "EVENT_ROOM", class_name = "EventRoom" }]
 
 [[migrations]]
 tag = "v1"
-new_classes = ["EventRoom"]
+new_sqlite_classes = ["EventRoom"]
 
 [env.staging]
 name = "wedding-photos-staging"
@@ -79,7 +79,7 @@ bindings = [{ name = "EVENT_ROOM", class_name = "EventRoom" }]
 
 [[env.staging.migrations]]
 tag = "v1"
-new_classes = ["EventRoom"]
+new_sqlite_classes = ["EventRoom"]
 
 [env.production]
 name = "wedding-photos"
@@ -117,4 +117,4 @@ bindings = [{ name = "EVENT_ROOM", class_name = "EventRoom" }]
 
 [[env.production.migrations]]
 tag = "v1"
-new_classes = ["EventRoom"]
+new_sqlite_classes = ["EventRoom"]
