@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, api, putWithProgress } from "./api";
 import { prepareImage } from "./image";
+import { inferVideoType, isVideoFile, uploadToStream } from "./video";
 
 export type UploadStatus = "queued" | "preparing" | "uploading" | "finalizing" | "done" | "error";
 
@@ -12,6 +13,7 @@ export type UploadItem = {
   attempts: number;
   error?: string;
   previewUrl: string;
+  kind: "photo" | "video";
 };
 
 const CONCURRENCY = 3;
@@ -29,15 +31,17 @@ function describeError(err: unknown): { message: string; retryable: boolean } {
       case "unauthorized":
         return { message: "Session expired, reload and rejoin", retryable: false };
       case "too_large":
-        return { message: "Photo is too large", retryable: false };
+        return { message: "File is too large", retryable: false };
       case "unsupported_content_type":
-        return { message: "Unsupported photo format", retryable: false };
+        return { message: "Unsupported file format", retryable: false };
+      case "stream_not_configured":
+        return { message: "Video uploads are not available", retryable: false };
       default:
         return { message: "Upload failed", retryable: true };
     }
   }
   if (err instanceof Error && err.message === "unsupported_type") {
-    return { message: "Unsupported photo format", retryable: false };
+    return { message: "Unsupported file format", retryable: false };
   }
   return { message: "Upload failed", retryable: true };
 }
@@ -60,6 +64,19 @@ export function useUploadQueue(code: string, onUploaded: () => void) {
       const file = files.current.get(id);
       if (!file) return;
       try {
+        if (isVideoFile(file)) {
+          const contentType = inferVideoType(file);
+          if (!contentType) throw new Error("unsupported_type");
+          const ticket = await api.createVideoUpload(code, contentType, file.size);
+          patch(id, { status: "uploading", progress: 0 });
+          await uploadToStream(ticket, file, file.name ?? "video", (fraction) => {
+            patch(id, { progress: fraction });
+          });
+          files.current.delete(id);
+          patch(id, { status: "done", progress: 1 });
+          onUploadedRef.current();
+          return;
+        }
         const prepared = await prepareImage(file);
         const ticket = await api.createUpload(code, prepared.contentType, prepared.blob.size);
         patch(id, { status: "uploading", progress: 0 });
@@ -122,11 +139,12 @@ export function useUploadQueue(code: string, onUploaded: () => void) {
       files.current.set(id, file);
       return {
         id,
-        name: file.name ?? "photo",
+        name: file.name ?? (isVideoFile(file) ? "video" : "photo"),
         status: "queued",
         progress: 0,
         attempts: 0,
         previewUrl: URL.createObjectURL(file),
+        kind: isVideoFile(file) ? "video" : "photo",
       };
     });
     setItems((prev) => [...added, ...prev]);

@@ -41,6 +41,9 @@ importers:
 
   apps/web:
     dependencies:
+      hls.js:
+        specifier: ^1.7.4
+        version: 1.7.4
       react:
         specifier: ^19.0.0
         version: 19.3.1
@@ -1547,6 +1550,9 @@ packages:
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
+
+  hls.js@1.7.4:
+    resolution: {integrity: sha512-3GlxGdPvT2YHvQYOt+yOzT/DEior/qJVNIylHA77kgeoBTdQQqi70GwefNEUmHQeNGyjC8U62+bruqW/Tpm+tg==}
 
   hono@4.13.14:
     resolution: {integrity: sha512-yhRLQ21U6qa9Hsu2N7Qcbh8tE+WKEcoErjIo56LeSGiGXGp9sA7UpE86Ui9uexb61KakiGwuHMn2QdV7w6i6kQ==}
@@ -3399,6 +3405,8 @@ snapshots:
   globals@15.15.0: {}
 
   has-flag@4.0.0: {}
+
+  hls.js@1.7.4: {}
 
   hono@4.13.14: {}
 

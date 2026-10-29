@@ -1,3 +1,5 @@
+import type { VideoTicket } from "./video";
+
 export type EventInfo = {
   name: string;
   cover_url: string | null;
@@ -6,7 +8,7 @@ export type EventInfo = {
   video_max_seconds: number;
 };
 
-export type MediaStatus = "pending" | "uploaded" | "ready" | "rejected";
+export type MediaStatus = "pending" | "uploaded" | "ready" | "rejected" | "failed";
 
 export type MyMedia = {
   id: string;
@@ -14,6 +16,9 @@ export type MyMedia = {
   status: MediaStatus;
   size_bytes: number | null;
   created_at: string;
+  duration_s: number | null;
+  poster_url: string | null;
+  hls_url: string | null;
 };
 
 export type UploadTicket = {
@@ -59,6 +64,8 @@ export const api = {
     }),
   createUpload: (code: string, contentType: string, size: number) =>
     post<UploadTicket>(`${base(code)}/uploads`, { kind: "photo", content_type: contentType, size }),
+  createVideoUpload: (code: string, contentType: string, size: number) =>
+    post<VideoTicket>(`${base(code)}/uploads`, { kind: "video", content_type: contentType, size }),
   completeUpload: (code: string, id: string) =>
     post<{ id: string; status: string }>(`${base(code)}/uploads/${id}/complete`),
   myMedia: (code: string) => request<{ media: MyMedia[] }>(`${base(code)}/me/media`),

@@ -13,6 +13,7 @@ import {
   originalKey,
   parseKind,
 } from "../lib/uploads";
+import { createVideoUpload } from "../lib/video";
 import type { PhotoQueueMessage } from "../types";
 
 type GuestEnv = { Bindings: Cloudflare.Env };
@@ -124,7 +125,7 @@ guest.post("/events/:code/uploads", async (c) => {
   if (!kind) return c.json({ error: "invalid_kind" }, 400);
   switch (describeKind(kind)) {
     case "video":
-      return c.json({ error: "video_not_supported_yet" }, 501);
+      return createVideoUpload(c, event, me, body);
     case "photo":
       break;
   }
@@ -251,7 +252,7 @@ guest.get("/events/:code/me/media", async (c) => {
   const auth = await loadEventAndGuest(c);
   if ("error" in auth) return auth.error;
   const { results } = await c.env.DB.prepare(
-    `SELECT id, kind, status, content_type, size_bytes, created_at FROM media
+    `SELECT id, kind, status, content_type, size_bytes, created_at, duration_s, poster_url, hls_url FROM media
      WHERE event_id = ? AND guest_id = ? ORDER BY created_at DESC, id LIMIT 500`,
   )
     .bind(auth.event.id, auth.guest.id)
@@ -262,6 +263,9 @@ guest.get("/events/:code/me/media", async (c) => {
       content_type: string | null;
       size_bytes: number | null;
       created_at: string;
+      duration_s: number | null;
+      poster_url: string | null;
+      hls_url: string | null;
     }>();
   return c.json({ media: results });
 });

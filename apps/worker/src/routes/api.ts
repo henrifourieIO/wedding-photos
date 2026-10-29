@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { guest } from "./guest";
 import { host } from "./host";
+import { webhooks } from "./webhooks";
 import { hostAccessAuth } from "../lib/auth";
 import { assertNever, type AppEnv, type RevealMode } from "../types";
 
@@ -27,3 +28,4 @@ api.get("/health", (c) => {
 api.route("/", guest);
 api.use("/host/*", hostAccessAuth());
 api.route("/host", host);
+api.route("/", webhooks);

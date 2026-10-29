@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { api, type EventInfo, type MyMedia } from "../lib/api";
+import { VideoRecorder } from "../components/VideoRecorder";
+import { canRecord } from "../lib/video";
 import { useUploadQueue, type UploadItem } from "../lib/useUploadQueue";
 
 type Props = { code: string; event: EventInfo; displayName: string };
 
+const POLL_MS = 4000;
 const canStream = typeof navigator !== "undefined" && "mediaDevices" in navigator;
 
 function statusLabel(item: UploadItem): string {
@@ -17,7 +20,7 @@ function statusLabel(item: UploadItem): string {
     case "finalizing":
       return "Finishing…";
     case "done":
-      return "Uploaded";
+      return item.kind === "video" ? "Uploaded, processing…" : "Uploaded";
     case "error":
       return item.error ?? "Failed";
     default: {
@@ -38,6 +41,17 @@ export function Camera({ code, event, displayName }: Props) {
       .catch(() => undefined);
   }, [code]);
   useEffect(refreshEarlier, [refreshEarlier]);
+
+  const processingCount = earlier.filter(
+    (m) => m.kind === "video" && m.status === "pending",
+  ).length;
+  useEffect(() => {
+    if (processingCount === 0) return;
+    const timer = window.setInterval(refreshEarlier, POLL_MS);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [processingCount, refreshEarlier]);
 
   const { items, enqueue, retry, dismiss } = useUploadQueue(code, refreshEarlier);
 
@@ -133,6 +147,22 @@ export function Camera({ code, event, displayName }: Props) {
           Choose from camera roll
           <input type="file" accept="image/*" multiple onChange={onPick} hidden />
         </label>
+        <label className="btn secondary big">
+          Take a video
+          <input type="file" accept="video/*" capture="environment" onChange={onPick} hidden />
+        </label>
+        <label className="btn secondary big">
+          Choose videos
+          <input type="file" accept="video/*" multiple onChange={onPick} hidden />
+        </label>
+        {canRecord ? (
+          <VideoRecorder
+            maxSeconds={event.video_max_seconds}
+            onRecorded={(file) => {
+              enqueue([file]);
+            }}
+          />
+        ) : null}
         {canStream && !live ? (
           <button type="button" className="btn ghost" onClick={() => void startLive()}>
             Open live camera
@@ -141,10 +171,23 @@ export function Camera({ code, event, displayName }: Props) {
         {liveError ? <p className="error">{liveError}</p> : null}
       </section>
 
+      {processingCount > 0 ? (
+        <p className="muted">
+          Processing {processingCount} video{processingCount === 1 ? "" : "s"}…
+        </p>
+      ) : null}
+      {earlier.some((m) => m.kind === "video" && m.status === "failed") ? (
+        <p className="error">A video could not be processed (too long or unsupported).</p>
+      ) : null}
+
       <ul className="queue">
         {items.map((item) => (
           <li key={item.id} className={`queue-item ${item.status}`}>
-            <img src={item.previewUrl} alt="" />
+            {item.kind === "video" ? (
+              <video src={item.previewUrl} muted playsInline preload="metadata" />
+            ) : (
+              <img src={item.previewUrl} alt="" />
+            )}
             <div className="queue-info">
               <span className="queue-name">{item.name}</span>
               <span className="queue-status">{statusLabel(item)}</span>

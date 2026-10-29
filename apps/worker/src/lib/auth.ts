@@ -16,8 +16,7 @@ export type HostIdentity = {
 };
 
 export type AccessVerifyResult =
-  | { ok: true; identity: HostIdentity }
-  | { ok: false; reason: string };
+  { ok: true; identity: HostIdentity } | { ok: false; reason: string };
 
 function accessIssuer(teamDomain: string): string {
   return `https://${teamDomain}`;

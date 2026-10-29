@@ -21,11 +21,7 @@ beforeEach(() => {
   clearAccessJwksCacheForTests();
 });
 
-async function signToken(payload: {
-  sub: string;
-  aud?: string;
-  exp?: number;
-}): Promise<string> {
+async function signToken(payload: { sub: string; aud?: string; exp?: number }): Promise<string> {
   const builder = new SignJWT({ sub: payload.sub })
     .setProtectedHeader({ alg: "RS256", kid: "test-key" })
     .setIssuer(`https://${teamDomain}`)
@@ -67,7 +63,10 @@ describe("verifyAccessJwt", () => {
   });
 
   it("rejects an expired token", async () => {
-    const token = await signToken({ sub: "host@example.com", exp: Math.floor(Date.now() / 1000) - 60 });
+    const token = await signToken({
+      sub: "host@example.com",
+      exp: Math.floor(Date.now() / 1000) - 60,
+    });
     const jwks = createLocalJWKSet({ keys: [publicJwk] });
     const result = await verifyAccessJwt(token, testEnv(), {
       jwks,
