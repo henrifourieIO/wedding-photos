@@ -1,0 +1,29 @@
+{
+  "name": "wedding-photos",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.11.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @wedding-photos/web build && pnpm --filter @wedding-photos/worker dev",
+    "build": "pnpm --filter @wedding-photos/web build && pnpm --filter @wedding-photos/worker build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm --filter @wedding-photos/web build && pnpm --filter @wedding-photos/worker test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.18",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.21.0"
+  }
+}
