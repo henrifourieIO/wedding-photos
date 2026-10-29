@@ -7,8 +7,18 @@ declare namespace Cloudflare {
     PHOTO_QUEUE: Queue<PhotoQueueMessage>;
     EVENT_ROOM: DurableObjectNamespace<EventRoom>;
     ASSETS: Fetcher;
+    GUEST_COOKIE_SECRET: string;
+    R2_ACCOUNT_ID?: string;
+    R2_ACCESS_KEY_ID?: string;
+    R2_SECRET_ACCESS_KEY?: string;
+    R2_BUCKET_NAME?: string;
+    MAX_UPLOAD_BYTES?: string;
     STREAM_API_TOKEN?: string;
     STREAM_WEBHOOK_SECRET?: string;
+    CF_ACCESS_TEAM_DOMAIN?: string;
+    CF_ACCESS_AUD?: string;
+    DEV_BYPASS_ACCESS?: string;
+    ENVIRONMENT?: string;
   }
 }
 

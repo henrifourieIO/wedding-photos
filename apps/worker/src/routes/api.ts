@@ -1,9 +1,8 @@
 import { Hono } from "hono";
-import { assertNever, type RevealMode } from "../types";
-
-export type AppEnv = {
-  Bindings: Cloudflare.Env;
-};
+import { guest } from "./guest";
+import { host } from "./host";
+import { hostAccessAuth } from "../lib/auth";
+import { assertNever, type AppEnv, type RevealMode } from "../types";
 
 function describeRevealMode(mode: RevealMode): string {
   switch (mode) {
@@ -24,3 +23,7 @@ api.get("/health", (c) => {
   const revealModes = (["instant", "delayed", "private"] as const).map(describeRevealMode);
   return c.json({ ok: true, service: "wedding-photos", revealModes });
 });
+
+api.route("/", guest);
+api.use("/host/*", hostAccessAuth());
+api.route("/host", host);

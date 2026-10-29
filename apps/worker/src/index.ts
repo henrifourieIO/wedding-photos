@@ -2,10 +2,7 @@ import { Hono } from "hono";
 import { api } from "./routes/api";
 import { handlePhotoQueueBatch } from "./queue";
 import { EventRoom } from "./durable/EventRoom";
-
-export type AppEnv = {
-  Bindings: Cloudflare.Env;
-};
+import type { AppEnv } from "./types";
 
 const app = new Hono<AppEnv>();
 
