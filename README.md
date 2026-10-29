@@ -61,10 +61,10 @@ Pushes to `main` run `.github/workflows/deploy.yml` and deploy the production Wo
 
 This repo is a pnpm workspace. **Do not** run `npx wrangler deploy` from the repository root—Wrangler will fail with an application-detection error because it is not scoped to `apps/worker`.
 
-| Dashboard field | Value |
-| --------------- | ----- |
-| Build command | `pnpm run build` |
-| Deploy command | `pnpm run deploy` |
+| Dashboard field | Value             |
+| --------------- | ----------------- |
+| Build command   | `pnpm run build`  |
+| Deploy command  | `pnpm run deploy` |
 
 Equivalent deploy command:
 
@@ -178,16 +178,33 @@ Host event page (`/host/events/:id`) lists **all** media via `GET /api/host/even
 
 Bulk download: `GET /api/host/events/:id/zip` streams a ZIP built in the Worker with [`client-zip`](https://github.com/Touffy/client-zip): photos from R2 (`web` preferred, else `orig`), videos by fetching the Stream MP4 download URL (`videodelivery.net/.../downloads/default.mp4`). Limits (documented caps, enforced server-side):
 
-| Limit            | Value                                      |
-| ---------------- | ------------------------------------------ |
-| Max files in ZIP | 200 ready, non-hidden items                |
-| Max ZIP size     | ~2 GB estimated (413 `zip_too_large`)      |
+| Limit            | Value                                 |
+| ---------------- | ------------------------------------- |
+| Max files in ZIP | 200 ready, non-hidden items           |
+| Max ZIP size     | ~2 GB estimated (413 `zip_too_large`) |
 
 Videos need Stream configured; photos need R2 objects present. Failures for individual entries are skipped until nothing remains (`no_downloadable_media`).
 
-## Host access (Cloudflare Access)
+## Host access
 
-The host dashboard (`/host/*`) and host API (`/api/host/*`) are protected by **Cloudflare Access** (Zero Trust). The Worker verifies the `Cf-Access-Jwt-Assertion` header using your team domain and application AUD tag.
+Guest routes (`/e/*`, `/api/e/*`) are public and must **not** sit behind Cloudflare Access. The host dashboard (`/host/*`) and host API (`/api/host/*`) accept either a **host password session** or (optionally) a **Cloudflare Access JWT**.
+
+### Password login (default)
+
+```bash
+cd apps/worker
+pnpm exec wrangler secret put HOST_PASSWORD --env production
+# optional: separate signing key (otherwise HOST_PASSWORD signs the cookie)
+pnpm exec wrangler secret put HOST_SESSION_SECRET --env production
+```
+
+The host signs in at `/host/login` (`POST /api/host/login` with `{"password": "..."}`), which sets an HMAC-signed, `HttpOnly`, `SameSite=Lax` cookie valid for 7 days. Rotating `HOST_SESSION_SECRET` (or `HOST_PASSWORD` when no session secret is set) invalidates all sessions. The SPA redirects to `/host/login` on any 401 from the host API. `DEV_BYPASS_ACCESS=true` (top-level `wrangler.toml` vars, `wrangler dev` only) skips auth locally.
+
+**Do not put a Cloudflare Access application on the workers.dev hostname (or any hostname) that guests use** - it would put a login wall in front of `/e/*`. If you previously created one, delete/disable it or scope it to nothing.
+
+### Optional: Cloudflare Access
+
+If `CF_ACCESS_TEAM_DOMAIN` and `CF_ACCESS_AUD` are both set, a valid `Cf-Access-Jwt-Assertion` is also accepted. This only works with a **custom domain** where Access is scoped to `/host` and `/api/host` paths only (never workers.dev if guests share the hostname).
 
 ### Configure Access
 
@@ -197,7 +214,7 @@ The host dashboard (`/host/*`) and host API (`/api/host/*`) are protected by **C
 4. **Policies**: Allow → Include → **Emails** → your host email only.
 5. Save the application and copy the **AUD** tag from the application settings.
 
-### Worker configuration (required for production)
+### Worker configuration (Access only)
 
 `auth.ts` reads **`CF_ACCESS_TEAM_DOMAIN`** and **`CF_ACCESS_AUD`** from the Worker **environment** (`c.env`). In Cloudflare these may be **Variables** or **Secrets**; both are exposed to the Worker the same way. **Do not commit real values in git.**
 

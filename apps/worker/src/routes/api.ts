@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { guest } from "./guest";
 import { host } from "./host";
+import { hostLogin } from "./hostLogin";
 import { webhooks } from "./webhooks";
 import { media } from "./media";
 import { hostAccessAuth } from "../lib/auth";
@@ -27,6 +28,7 @@ api.get("/health", (c) => {
 });
 
 api.route("/", guest);
+api.route("/host", hostLogin);
 api.use("/host/*", hostAccessAuth());
 api.route("/host", host);
 api.route("/", webhooks);

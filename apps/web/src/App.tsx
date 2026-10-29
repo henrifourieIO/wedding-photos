@@ -3,6 +3,7 @@ import { Event } from "./routes/Event";
 import { Gallery } from "./routes/Gallery";
 import { EventDetail } from "./routes/EventDetail";
 import { EventForm } from "./routes/EventForm";
+import { HostLogin } from "./routes/HostLogin";
 import { HostDashboard } from "./routes/HostDashboard";
 
 const GUEST_GALLERY = /^\/e\/([A-Za-z0-9_-]+)\/gallery\/?$/;
@@ -24,6 +25,7 @@ function HostRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/host/login" element={<HostLogin />} />
         <Route path="/host" element={<HostDashboard />} />
         <Route path="/host/new" element={<EventForm />} />
         <Route path="/host/events/:id" element={<EventDetail />} />
