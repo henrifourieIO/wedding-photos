@@ -57,6 +57,25 @@ pnpm exec wrangler d1 migrations apply wedding-photos-staging --remote --env sta
 
 Pushes to `main` run `.github/workflows/deploy.yml` and deploy the production Worker. PRs run typecheck, lint, and tests via `.github/workflows/ci.yml`.
 
+### Worker Builds (dashboard deploy)
+
+This repo is a pnpm workspace. **Do not** run `npx wrangler deploy` from the repository root—Wrangler will fail with an application-detection error because it is not scoped to `apps/worker`.
+
+| Dashboard field | Value |
+| --------------- | ----- |
+| Build command | `pnpm run build` |
+| Deploy command | `pnpm run deploy` |
+
+Equivalent deploy command:
+
+```bash
+pnpm --filter @wedding-photos/worker exec wrangler deploy --env production
+```
+
+Staging: `pnpm run deploy:staging` (or the same filter command with `--env staging`).
+
+The top-level `[vars]` block in `apps/worker/wrangler.toml` sets `DEV_BYPASS_ACCESS=true` for local dev. **Production deploys must pass `--env production`** (and staging must use `--env staging`); otherwise those dev vars would ship to Cloudflare.
+
 Stream secrets are covered under [Video (Cloudflare Stream)](#video-cloudflare-stream).
 
 ### Guest upload secrets

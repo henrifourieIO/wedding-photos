@@ -10,6 +10,8 @@
   "scripts": {
     "dev": "pnpm --filter @wedding-photos/web build && pnpm --filter @wedding-photos/worker dev",
     "build": "pnpm --filter @wedding-photos/web build && pnpm --filter @wedding-photos/worker build",
+    "deploy": "pnpm --filter @wedding-photos/worker exec wrangler deploy --env production",
+    "deploy:staging": "pnpm --filter @wedding-photos/worker exec wrangler deploy --env staging",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "test": "pnpm --filter @wedding-photos/web build && pnpm --filter @wedding-photos/worker test",
