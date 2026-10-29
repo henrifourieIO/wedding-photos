@@ -3,15 +3,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKER_DIR="${ROOT}/apps/worker"
+WRANGLER=(pnpm exec wrangler --cwd "${WORKER_DIR}")
 
 echo "Creating Cloudflare resources for wedding-photos (run from repo root)."
-echo "Requires: wrangler logged in (wrangler login) or CLOUDFLARE_API_TOKEN set."
+echo "Requires: pnpm exec wrangler login (from repo root) or CLOUDFLARE_API_TOKEN set."
 echo ""
 
 create_d1() {
   local name="$1"
   echo "=== D1: ${name} ==="
-  wrangler d1 create "${name}" 2>&1 | tee /tmp/wd1-"${name}".txt || true
+  "${WRANGLER[@]}" d1 create "${name}" 2>&1 | tee /tmp/wd1-"${name}".txt || true
   grep -E "database_id|Created" /tmp/wd1-"${name}".txt || true
   echo ""
 }
@@ -19,14 +20,14 @@ create_d1() {
 create_r2() {
   local name="$1"
   echo "=== R2: ${name} ==="
-  wrangler r2 bucket create "${name}" 2>&1 || echo "(bucket may already exist)"
+  "${WRANGLER[@]}" r2 bucket create "${name}" 2>&1 || echo "(bucket may already exist)"
   echo ""
 }
 
 create_kv() {
   local title="$1"
   echo "=== KV: ${title} ==="
-  wrangler kv namespace create "${title}" 2>&1 | tee /tmp/wkv-"${title}".txt || true
+  "${WRANGLER[@]}" kv namespace create "${title}" 2>&1 | tee /tmp/wkv-"${title}".txt || true
   grep -E "id|Created" /tmp/wkv-"${title}".txt || true
   echo ""
 }
@@ -34,7 +35,7 @@ create_kv() {
 create_queue() {
   local name="$1"
   echo "=== Queue: ${name} ==="
-  wrangler queues create "${name}" 2>&1 || echo "(queue may already exist)"
+  "${WRANGLER[@]}" queues create "${name}" 2>&1 || echo "(queue may already exist)"
   echo ""
 }
 
@@ -57,16 +58,16 @@ cat <<'EOF'
 
 2. Apply D1 migrations locally or remotely:
    cd apps/worker
-   wrangler d1 migrations apply wedding-photos --remote
-   wrangler d1 migrations apply wedding-photos-staging --remote --env staging
+   pnpm exec wrangler d1 migrations apply wedding-photos --remote
+   pnpm exec wrangler d1 migrations apply wedding-photos-staging --remote --env staging
 
 3. Set GitHub Actions secrets on the repo:
    CLOUDFLARE_API_TOKEN
    CLOUDFLARE_ACCOUNT_ID
 
 4. Optional Worker secrets (later PRs):
-   wrangler secret put STREAM_API_TOKEN
-   wrangler secret put STREAM_WEBHOOK_SECRET
+   pnpm exec wrangler secret put STREAM_API_TOKEN
+   pnpm exec wrangler secret put STREAM_WEBHOOK_SECRET
 
 5. Cloudflare Access: protect /host/* and /api/host/* with a Zero Trust application
    (allow-list your email). Guests use join codes only; no Access on guest routes.
