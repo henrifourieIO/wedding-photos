@@ -10,16 +10,17 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@cf-wasm/photon": "^0.4.0",
     "hono": "^4.7.2",
     "jose": "^6.0.11",
     "qrcode": "1.5.4"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.6.14",
-    "@cloudflare/workers-types": "^4.20250204.0",
+    "@cloudflare/vitest-plugin": "^1.4.9",
+    "@cloudflare/workers-types": "^5.20261023.1",
     "@types/qrcode": "^1.5.5",
     "typescript": "^5.7.3",
-    "vitest": "~2.1.8",
-    "wrangler": "^3.109.2"
+    "vitest": "^5.0.5",
+    "wrangler": "^4.0.0"
   }
 }

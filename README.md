@@ -120,6 +120,26 @@ Notes: clips over 200 MB use the tus (resumable) endpoint, otherwise a one-time 
 
 **Cost:** Stream bills per minute stored (about $5 per 1,000 minutes) and per minute delivered (about $1 per 1,000 minutes); encoding and ingress are free. Example: 200 guests x 5 clips x 20 s is roughly 330 stored minutes, about $1.70 per month, plus delivery. Check current pricing at cloudflare.com/products/stream.
 
+## Photo processing
+
+`POST /api/events/:code/uploads/:id/complete` enqueues `{ mediaId, eventId }` on `PHOTO_QUEUE`; the consumer in `apps/worker/src/queue.ts` (`lib/process.ts`) then:
+
+1. Loads the `media` row (`uploaded` -> `processing`; already `ready`/`rejected`/`failed` rows are skipped, so redelivery is idempotent) and reads the original from R2.
+2. Validates magic bytes (JPEG, PNG, WebP, HEIC) against the declared `content_type`. Mismatch, unknown or undecodable files get status `rejected` with a `reason`.
+3. Reads EXIF orientation and `DateTimeOriginal` (`taken_at`) plus dimensions (`width`/`height` are display dimensions, orientation applied).
+4. Writes `events/<event_id>/thumb/<id>.jpg` (max 400 px) and `events/<event_id>/web/<id>.jpg` (max 2000 px), re-encoded from decoded pixels so no EXIF/GPS survives. Sets `ready`, `processed_at`, `thumb_key`, `web_key`.
+
+Decoder: [`@cf-wasm/photon`](https://github.com/fineshopdesign/cf-wasm) (WASM, ~1.5 MB, runs in Workers; no Images binding or extra Cloudflare product/token needed, and it works under the local test runtime). Limits: decoded pixels use Worker memory (128 MB), so images over 16 MP and all HEIC/HEIF are marked `ready` **without** thumb/web derivatives (`reason` = `no_derivative_oversize` / `no_derivative_heic`); the SPA downsizes to JPEG on the client in most cases. Non-owners cannot fetch the original (it may contain GPS), so such photos are only visible to their uploader until reprocessed with a different path.
+
+Retries: transient errors call `message.retry()` with exponential backoff; on attempt 3 (`MAX_ATTEMPTS`) the row becomes `failed` with `error` and the message is acked. `max_retries = 3` and a dead-letter queue (`photo-uploaded-dlq`, `photo-uploaded-staging-dlq`) catch invocations that crash before reaching that code.
+
+Routes:
+
+- `GET /api/events/:code/media/:id/:variant` (`thumb|web|orig`): streams from R2. `thumb`/`web` need `ready`, not hidden and a revealed gallery; the uploader (guest cookie) can always fetch their own. `orig` is uploader-only.
+- `POST /api/events/:code/uploads/:id/reprocess`: uploader re-enqueues a photo (e.g. after `failed`).
+
+Migration `0003_media_processing.sql` adds `reason`, `error`, `processed_at`, `thumb_key`, `web_key`. Run `scripts/cf-setup.sh` (or `wrangler queues create`) for the new DLQ queues and apply migrations before deploying.
+
 ## Host access (Cloudflare Access)
 
 The host dashboard (`/host/*`) and host API (`/api/host/*`) are protected by **Cloudflare Access** (Zero Trust). The Worker verifies the `Cf-Access-Jwt-Assertion` header using your team domain and application AUD tag.
