@@ -4,7 +4,7 @@ A Cloudflare-hosted wedding album: the host creates an event and shares a QR cod
 
 ## Local development
 
-Requirements: Node 20+ (see `.nvmrc`), pnpm 10.16+ (see `packageManager` in `package.json`).
+Requirements: Node 22.12+ (see `.nvmrc`), pnpm 10.16+ (see `packageManager` in `package.json`).
 
 ```bash
 pnpm install
