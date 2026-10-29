@@ -87,10 +87,8 @@ name = "wedding-photos"
 [env.production.vars]
 ENVIRONMENT = "production"
 R2_BUCKET_NAME = "wedding-photos"
-# Required for host JWT verification (set in dashboard or CLI — do not commit real values):
-# CF_ACCESS_TEAM_DOMAIN — Zero Trust → Settings → Custom pages (team domain)
-# CF_ACCESS_AUD — Access → Applications → app → Application Audience (AUD) Tag
-# Workers & Pages → wedding-photos → Settings → Variables and Secrets → Production
+CF_ACCESS_TEAM_DOMAIN = "henri-481.cloudflareaccess.com"
+CF_ACCESS_AUD = "03f62a045d14f2c018cd37fc7d4a779cd7efc1b5cf0e13388208f33c4d34e5e"
 
 [[env.production.d1_databases]]
 binding = "DB"
